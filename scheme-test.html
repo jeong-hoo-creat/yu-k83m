@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>앱 열기 주소 테스트</title>
+<style>
+:root{--bg:#F2F4F1;--surface:#fff;--ink:#16201C;--muted:#5C6B64;--line:#D9E0DB;--accent:#1E6B57;--ok:#E1EFE9;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1513;--surface:#18201D;--ink:#E6ECE8;--muted:#97A59E;--line:#2A3531;--accent:#5FBF9F;--ok:#1D3029;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Apple SD Gothic Neo",system-ui,sans-serif;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
+main{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:22px;margin:0}
+p{margin:0;color:var(--muted);font-size:13.5px}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+h2{font-size:16px;margin:0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+code{font-size:13px;overflow-wrap:anywhere}
+a.try{flex:none;text-decoration:none;background:var(--accent);color:#fff;border-radius:10px;padding:8px 14px;font-weight:600}
+button.mark{flex:none;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:7px 10px;font:inherit;font-size:13px}
+.row.ok{background:var(--ok);border-radius:10px;padding:6px 8px}
+#result{white-space:pre-wrap;font-size:13px;background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:10px 12px}
+</style>
+</head>
+<body>
+<main>
+  <h1>앱 열기 주소 테스트</h1>
+  <p>«열기»를 하나씩 눌러보세요. 앱이 바로 열리면 성공이에요. 앱으로 갔다가 돌아와서 그 줄의 «됨»을 눌러 표시해 주세요. 안 되는 주소는 Safari가 경고만 띄우고 끝나요. 아이폰 Safari에서 열어야 해요(Claude 앱 안에서는 안 돼요).</p>
+  <div id="groups"></div>
+  <h2>결과</h2>
+  <div id="result">아직 «됨»으로 표시한 주소가 없어요.</div>
+  <p>결과 칸 내용을 길게 눌러 복사해서 Claude에게 보내주세요.</p>
+</main>
+<script>
+const GROUPS = {
+  "러닝엑스": ["learningx://","learningxstudent://","learningx-student://","lxstudent://","xinics://","canvas-student://","canvas-courses://","canvasstudent://"],
+  "출입증 (클리커)": ["clicker://","libtech://","libtechclicker://","clickerapp://","kr.co.libtech.clicker://"],
+  "스마트출결": ["yuattend://","yusmart://","yusmartattend://","smartattendance://","smartattend://","smartcheck://","yuattendance://","ynu://"],
+  "영남대학교 앱": ["yu://","yeungnam://","yuapp://","ynuapp://"]
+};
+const ok = new Set();
+const root = document.getElementById("groups");
+for(const [g, list] of Object.entries(GROUPS)){
+  const s = document.createElement("section");
+  s.innerHTML = `<h2>${g}</h2>` + list.map(u => `<div class="row" data-u="${u}"><code>${u}</code><span style="display:flex;gap:6px"><button class="mark" type="button">됨</button><a class="try" href="${u}">열기</a></span></div>`).join("");
+  root.append(s);
+}
+root.addEventListener("click", e => {
+  const b = e.target.closest(".mark"); if(!b) return;
+  const row = b.closest(".row"), u = row.dataset.u;
+  if(ok.has(u)){ ok.delete(u); row.classList.remove("ok"); } else { ok.add(u); row.classList.add("ok"); }
+  const lines = [...ok].map(x => { const grp = Object.keys(GROUPS).find(k => GROUPS[k].includes(x)); return `${grp}: ${x}`; });
+  document.getElementById("result").textContent = lines.length ? "열린 주소\n" + lines.join("\n") : "아직 «됨»으로 표시한 주소가 없어요.";
+});
+</script>
+</body>
+</html>
