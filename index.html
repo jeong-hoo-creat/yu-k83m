@@ -77,6 +77,11 @@ main{flex:1;min-height:0;overflow-y:auto;padding:14px var(--gr) 20px var(--gl)}
 .row strong{font-weight:500;font-size:14.5px;min-width:0;overflow-wrap:anywhere}
 .row small{grid-column:1/-1;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 a.row:hover strong{color:var(--accent)}
+#setup-sheet{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;padding:0 max(12px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.setup-box{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:16px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:10px}
+.setup-box p{margin:0;font-size:13.5px;color:var(--muted)}
+.setup-box .chip{border-radius:12px;padding:11px 12px;font-size:14px;color:var(--accent);font-weight:600}
+.setup-box button{font:inherit;border:0;border-radius:12px;padding:11px;background:var(--accent);color:var(--accent-ink);font-weight:600}
 .how{font-size:12.5px;color:var(--muted)}
 .how summary{cursor:pointer;color:var(--accent)}
 .how ol{margin:6px 0 0;padding-left:18px}
@@ -167,6 +172,7 @@ a.row:hover strong{color:var(--accent)}
       <a class="app" data-sc="%EB%9F%AC%EB%8B%9D%EC%97%91%EC%8A%A4" data-direct="canvas-courses://" href="https://apps.apple.com/kr/app/id6621208397" target="_blank" rel="noopener"><strong>러닝엑스</strong><span>강의·과제·강의 공지</span><em>앱 열기 ↗</em></a>
       <a class="app" href="https://portal.yu.ac.kr/sso/login.jsp?type=easy" target="_blank" rel="noopener"><strong>URP</strong><span>학생종합정보시스템</span><em>웹으로 열기 ↗</em></a>
     </div>
+    <div id="setup-sheet" hidden></div>
     <p class="fallback" id="fallback">앱스토어를 거쳐 열려요(«열기»). <a href="https://lms.yu.ac.kr/" target="_blank" rel="noopener">러닝엑스 웹</a></p>
 
     <section class="panel" aria-labelledby="my-h">
@@ -553,13 +559,52 @@ if(IN_CLAUDE){
   $("#out-btn").addEventListener("click", () => { if(ctl) ctl.abort(); $("#login").hidden = false; $("#login").scrollTop = 0; });
 } else {
   // 단축어로 앱 바로 열기 (단축어 이름: 스마트출결 / 출입증 / 러닝엑스)
+  const here = location.origin + location.pathname;
   document.querySelectorAll("[data-sc]").forEach(a => {
-    // 앱 전용 주소가 확인된 앱은 단축어 없이 바로, 나머지는 단축어로
-    a.href = a.dataset.direct || ("shortcuts://run-shortcut?name=" + a.dataset.sc); a.removeAttribute("target");
+    const store = a.getAttribute("href");          // 원래 href = 앱스토어 주소
+    a.dataset.store = store;
+    a.removeAttribute("target");
     a.querySelector("em").textContent = "바로 열기";
+    if(a.dataset.direct){
+      // 앱 전용 주소로 열기 → 1.8초 안에 앱으로 안 넘어가면(=앱 없음) 앱스토어로
+      a.href = a.dataset.direct;
+      a.addEventListener("click", e => {
+        e.preventDefault();
+        let left = false;
+        const gone = () => { left = true; };
+        document.addEventListener("visibilitychange", gone);
+        window.addEventListener("pagehide", gone);
+        location.href = a.dataset.direct;
+        setTimeout(() => {
+          document.removeEventListener("visibilitychange", gone);
+          window.removeEventListener("pagehide", gone);
+          if(!left && !document.hidden) location.href = store;
+        }, 1800);
+      });
+    } else {
+      // 단축어로 열기 → 단축어가 없거나 앱이 없어 실패하면 이 페이지의 설치 안내로 돌아옴
+      a.href = "shortcuts://x-callback-url/run-shortcut?name=" + a.dataset.sc
+        + "&x-error=" + encodeURIComponent(here + "#setup-" + a.dataset.sc);
+    }
   });
+  // 단축어 실패로 돌아왔을 때: 앱 설치 + 단축어 추가 안내
+  function showSetup(){
+    const m = decodeURIComponent(location.hash).match(/^#setup-(.+)$/); if(!m) return;
+    const card = [...document.querySelectorAll("[data-sc]")].find(a => decodeURIComponent(a.dataset.sc) === m[1]);
+    const name = card ? card.querySelector("strong").textContent : m[1];
+    const store = card ? card.dataset.store : "";
+    $("#setup-sheet").innerHTML = `<div class="setup-box" role="dialog" aria-label="${esc(name)} 설치 안내">
+      <strong>${esc(name)} 앱을 열지 못했어요</strong>
+      <p>앱이 없거나 단축어가 아직 없어서예요. 아래 두 가지를 해 주세요.</p>
+      <a class="chip" href="${store}" rel="noopener">① ${esc(name)} 앱 받기 (이미 있으면 «열기»로 보여요)</a>
+      <a class="chip" href="https://www.icloud.com/shortcuts/f76741ff6aa34419b3c8a41ce268207b" rel="noopener">② 단축어 추가 (이름은 바꾸지 마세요)</a>
+      <button type="button" id="setup-close">닫기</button></div>`;
+    $("#setup-sheet").hidden = false;
+    $("#setup-close").addEventListener("click", () => { $("#setup-sheet").hidden = true; history.replaceState(null, "", here); });
+  }
+  showSetup(); window.addEventListener("hashchange", showSetup);
   $("#fallback").innerHTML = `<details class="how"><summary>처음이세요? 단축어 설치 · 앱이 안 열릴 때</summary>
-    <p style="margin:6px 0">러닝엑스·클리커는 바로 열려요. 스마트출결만 단축어가 필요해요. 아래 버튼을 눌러 «단축어 추가»를 해 주세요(이름은 바꾸지 마세요).</p>
+    <p style="margin:6px 0">러닝엑스·클리커는 바로 열리고, 앱이 없으면 자동으로 앱스토어로 넘어가요. 스마트출결만 단축어가 필요해요(없으면 설치 안내가 떠요). 아래 버튼을 눌러 «단축어 추가»를 해 주세요(이름은 바꾸지 마세요).</p>
     <div class="chips">
       <a class="chip" href="https://www.icloud.com/shortcuts/f76741ff6aa34419b3c8a41ce268207b" target="_blank" rel="noopener">스마트출결 단축어</a>
     </div>
