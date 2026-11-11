@@ -113,6 +113,43 @@ def heuristic(src, page):
         items.append(item)
         if len(items) >= src["limit"]:
             break
+    if not items:
+        items = loose(src, page)
+    return items
+
+
+def loose(src, page):
+    """링크가 onclick·data 속성 안에 있을 때: 페이지 어디서든 글 번호를 찾아요."""
+    items, seen = [], set()
+    hits = list(re.finditer(src["link"], page))
+    for i, m in enumerate(hits):
+        if m.group(1) in seen:
+            continue
+        seen.add(m.group(1))
+        end = len(page)
+        for n in hits[i + 1:]:
+            if n.group(1) != m.group(1):
+                end = n.start()
+                break
+        seg = page[m.start():end][:4000]
+        tm = re.search(r'(?is)class="[^"]*(?:tit|subject|name|program)[^"]*"[^>]*>(.*?)</', seg)
+        title = text_of(tm.group(1)) if tm else ""
+        if len(title) < 4:
+            chunks = [c.strip() for c in re.split(r"(?s)<[^>]+>", seg) if c.strip()]
+            chunks = [html.unescape(c) for c in chunks if len(c.strip()) >= 6 and not DATE_RE.search(c) and not c.strip().startswith(("http", "/", "javascript"))]
+            title = re.sub(r"\s+", " ", chunks[0]).strip() if chunks else ""
+        if len(title) < 4 or len(title) > 200:
+            continue
+        href = src["url"].rstrip("/").split("/ko/")[0] + "/ko/program/all/view/" + m.group(1) if "program/all/view" in src["link"] else urllib.parse.urljoin(src["url"], page[m.start():m.end()])
+        dates = [d for d in (iso(x) for x in DATE_RE.findall(seg[:1500])) if d]
+        item = {"title": title, "url": href, "cat": src["cat"]}
+        if len(dates) >= 2:
+            item["from"], item["deadline"] = dates[0], dates[1]
+        elif dates:
+            item["deadline"] = dates[0]
+        items.append(item)
+        if len(items) >= src["limit"]:
+            break
     return items
 
 
@@ -201,8 +238,10 @@ def main():
         for it in items:
             old = by_url.get(it["url"])
             if old:
-                for k in ("title", "deadline", "from"):
-                    if it.get(k) and it[k] != old.get(k):
+                # 직접 정리한 항목은 제목을 지키고, 비어 있는 날짜만 채워요
+                fields = ("title", "deadline", "from") if old.get("auto") else ("deadline", "from")
+                for k in fields:
+                    if it.get(k) and it[k] != old.get(k) and (old.get("auto") or not old.get(k)):
                         old[k] = it[k]
                         updated += 1
                 if it.get("body") and old.get("auto"):
