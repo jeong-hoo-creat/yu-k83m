@@ -2,8 +2,8 @@ name: 공지 자동 갱신
 
 on:
   schedule:
-    - cron: "37 21 * * *"   # 매일 한국시간 오전 6시 37분
-  workflow_dispatch:         # Actions 탭에서 «Run workflow»로 바로 실행
+    - cron: "37 21,9 * * *"   # 매일 한국시간 오전 6시 37분, 오후 6시 37분
+  workflow_dispatch:           # Actions 탭에서 «Run workflow»로 바로 실행
 
 permissions:
   contents: write
@@ -13,14 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: 준비
+        run: pip install --quiet cryptography
       - name: 공지 모으기
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LMS_FEED_URL: ${{ secrets.LMS_FEED_URL }}
+          SCHEDULE_PASS: ${{ secrets.SCHEDULE_PASS }}
         run: python3 update.py
       - name: 바뀐 내용 저장
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data.json
-          git diff --cached --quiet || git commit -m "공지 자동 갱신"
+          if [ -f schedule.enc.json ]; then git add schedule.enc.json; fi
+          git diff --cached --quiet || git commit -m "자동 갱신"
           git push
