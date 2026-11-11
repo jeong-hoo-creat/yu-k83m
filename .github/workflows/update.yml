@@ -27,5 +27,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data.json
           if [ -f schedule.enc.json ]; then git add schedule.enc.json; fi
+          if [ -f profs.json ]; then git add profs.json; fi
           git diff --cached --quiet || git commit -m "자동 갱신"
           git push
