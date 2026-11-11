@@ -276,6 +276,10 @@ a.row:hover strong{color:var(--accent)}
         <a class="chip" href="https://www.yu.ac.kr/yucf/cafeteria/cheonma-art.do" target="_blank" rel="noopener">천마아트센터 식당</a>
       </div>
     </section>
+    <section class="panel" aria-labelledby="tel-h">
+      <div class="ph"><h2 id="tel-h">자주 찾는 연락처</h2><span class="note">눌러서 전화</span></div>
+      <div class="rows" id="tel-list"></div>
+    </section>
     <section class="panel" aria-labelledby="cal-h">
       <div class="ph"><h2 id="cal-h">학사 일정</h2><a class="small-btn" href="https://www.yu.ac.kr/main/bachelor/calendar.do" target="_blank" rel="noopener">학교 학사일정 ↗</a></div>
       <div class="rows" id="cal-list"></div>
@@ -428,6 +432,52 @@ NOTICES.push(
    url:"https://www.yu.ac.kr/yucf/notice/diet.do?mode=view&articleNo=232444436", source:"편의시설"}
 );
 
+// 캠퍼스 정보: 건물·연락처·시설 (학교 편의시설·순환버스·안내 페이지 기준, 2026-11-12)
+const MAP_N = q => "https://map.naver.com/p/search/" + encodeURIComponent("영남대학교 " + q);
+const MAP_K = q => "https://map.kakao.com/?q=" + encodeURIComponent("영남대학교 " + q);
+const CAMPUS = [
+  // 건물
+  {id:"c1", kind:"건물", name:"상경관", aliases:["경영대","경영대학","상경대","경영학과"], info:"경영대학(경영학과)이 있는 건물. 안에 상경관 편의점이 있어요. 경영대학 행정실 053-810-3213."},
+  {id:"c2", kind:"건물", name:"중앙도서관", aliases:["중도","도서관"], info:"스타벅스(중앙도서관점)가 있어요. 순환버스 1노선·2노선 모두 정차. 이용 안내는 도서관 사이트(libs.yu.ac.kr)."},
+  {id:"c3", kind:"건물", name:"천마아트센터", aliases:["천마아트","아트센터"], info:"공연장·갤러리홀. 천마아트센터 식당(카페동이), 스타벅스(천마아트센터점)가 있어요. 순환버스 2노선 정차."},
+  {id:"c4", kind:"건물", name:"학생회관", aliases:["학관","학회관"], info:"학생회관 식당, 학생회관 편의점, 카페 ING(학생회관점)이 있어요."},
+  {id:"c5", kind:"건물", name:"국제교류센터", aliases:["국교","국제관"], info:"국제교류센터 편의점, KFC 영남대점, 대구은행이 있어요. 순환버스 1노선 정차."},
+  {id:"c6", kind:"건물", name:"인문관", aliases:["인문대","인문대학"], info:"인문대학 건물. 순환버스 1노선 정차."},
+  {id:"c7", kind:"건물", name:"제1과학관", aliases:["1과학관","일과"], info:"카페 애니포레스트(제1과학관점)가 있어요. 순환버스 1·2노선 정차."},
+  {id:"c8", kind:"건물", name:"제2과학관", aliases:["2과학관"], info:"순환버스 2노선 정차."},
+  {id:"c9", kind:"건물", name:"천마관", aliases:[], info:"순환버스 1노선 정차."},
+  {id:"c10", kind:"건물", name:"사범대학", aliases:["사대"], info:"사범대학 복사실이 있어요. 순환버스 1노선 정차."},
+  {id:"c11", kind:"건물", name:"기계관", aliases:[], info:"기계관 복사실이 있어요. 순환버스 2노선 정차."},
+  {id:"c12", kind:"건물", name:"전기관", aliases:[], info:"전기관 복사실이 있어요."},
+  {id:"c13", kind:"건물", name:"약학관", aliases:["약대"], info:"순환버스 2노선 정차."},
+  {id:"c14", kind:"건물", name:"생활과학대학", aliases:["생과대"], info:"순환버스 2노선 정차."},
+  {id:"c15", kind:"건물", name:"생명응용과학대학", aliases:["생명대"], info:"순환버스 2노선 정차."},
+  {id:"c16", kind:"건물", name:"노천강당", aliases:["노천"], info:"야외 강당. 순환버스 2노선 정차."},
+  {id:"c17", kind:"건물", name:"외국어교육원", aliases:["외교원","글로벌라운지"], info:"1층 글로벌 라운지, 카페 그라찌에가 있어요. 라운지 분실물은 글로벌인재대학 행정실(C02-104호)."},
+  {id:"c18", kind:"건물", name:"이종우 과학도서관", aliases:["과학도서관","과도"], info:"이종우 과학도서관 복사실이 있어요."},
+  {id:"c19", kind:"건물", name:"법학전문도서관", aliases:["법도","법학도서관"], info:"법학전문도서관 복사실이 있어요."},
+  {id:"c20", kind:"건물", name:"생활관", aliases:["기숙사","긱사"], info:"생활관 편의점, 카페 ING(생활관 식당)이 있어요. 생활관 안내는 dormi.yu.ac.kr."},
+  {id:"c21", kind:"건물", name:"벤처창업관", aliases:["창업관"], info:"롯데리아 DT점이 있어요."},
+  {id:"c22", kind:"건물", name:"천마체육관", aliases:["체육관"], info:"실내 체육시설. 시설 대관은 통합공간대관시스템(jawon.yu.ac.kr)."},
+  {id:"c23", kind:"건물", name:"서문 인조잔디축구장", aliases:["서문","순환버스 정류장","순환지점"], info:"교내 순환버스 순환지점(5분 정차)."},
+  // 연락처
+  {id:"c30", kind:"연락처", name:"대표 전화", aliases:["학교 전화","교환"], phone:"053-810-2114", info:"부서를 모를 때 연결해 줘요."},
+  {id:"c31", kind:"연락처", name:"수업학적팀", aliases:["학적","휴학","복학","수강","출결 문의","학점"], phone:"053-810-1061", info:"휴·복학, 학적, 수업 관련 문의."},
+  {id:"c32", kind:"연락처", name:"교무팀", aliases:["교무"], phone:"053-810-1074", info:"교무·학사 운영 문의."},
+  {id:"c33", kind:"연락처", name:"장학팀", aliases:["장학","장학금","국가장학금","등록금"], phone:"053-810-1141", info:"장학금·국가장학금·등록금 관련 (1141~1144)."},
+  {id:"c34", kind:"연락처", name:"학생지원팀", aliases:["순환버스 문의","학생지원"], phone:"053-810-1138", info:"교내 순환버스 등 학생 지원."},
+  {id:"c35", kind:"연락처", name:"경영대학 행정실", aliases:["경영학과 사무실","과사","학과 사무실","경영대 행정실"], phone:"053-810-3213", info:"경영학과 공지·자격증 응시료 지원 등. 이메일 business@yu.ac.kr, management@yu.ac.kr."},
+  {id:"c36", kind:"연락처", name:"대학원학사팀", aliases:["학석사","대학원"], phone:"053-810-3771", info:"5년제 학·석사연계과정 문의."},
+  {id:"c37", kind:"연락처", name:"글로벌공생HUSS사업단", aliases:["HUSS","휴스"], phone:"053-810-4464", info:"HUSS 특강·학술포스터 발표회 등."},
+  {id:"c38", kind:"연락처", name:"AI가치확산팀", aliases:["AI 튜터"], phone:"053-810-4451", info:"AI 리터러시 청년 튜터 프로그램 문의."},
+  // 시설
+  {id:"c40", kind:"시설", name:"자연계 편의점", aliases:["편의점"], info:"자연계 학생식당 앞. 학기·방학 08:00~22:00, 시험기간 07:00~24:00(주말 동일)."},
+  {id:"c41", kind:"시설", name:"도서관 이용 안내", aliases:["도서관 시간","열람실"], info:"열람실·좌석·운영시간은 도서관 사이트에서 확인하세요.", link:"https://libs.yu.ac.kr/"},
+  {id:"c42", kind:"시설", name:"건강관리센터", aliases:["보건소","보건실","아플 때"], info:"교내 건강관리센터. 자세한 안내는 사이트에서.", link:"https://health.yu.ac.kr/"},
+  {id:"c43", kind:"시설", name:"시설 대관", aliases:["강의실 대관","대관","체육관 예약"], info:"강의실·체육시설·노천강당 등은 통합공간대관시스템에서 신청.", link:"https://jawon.yu.ac.kr/"},
+  {id:"c44", kind:"시설", name:"캠퍼스맵", aliases:["지도","건물 위치","캠퍼스 지도"], info:"학교 공식 캠퍼스맵과 캠퍼스 VR.", link:"https://www.yu.ac.kr/main/intro/campus-map.do"}
+];
+
 
 function status(n){
   if(n.from && new Date(n.from + "T00:00:00") > new Date()) return {cls:"info", label:"예정"};
@@ -473,6 +523,23 @@ if(IN_CLAUDE){
     </div>
     <p style="margin:6px 0 0">앱이 안 열리면 단축어에서 «앱»을 다시 골라 주세요. 앱스토어: <a href="https://apps.apple.com/kr/app/id6673893023" target="_blank" rel="noopener">출결</a> · <a href="https://apps.apple.com/kr/app/id498173110" target="_blank" rel="noopener">출입증</a> · <a href="https://apps.apple.com/kr/app/id6621208397" target="_blank" rel="noopener">러닝엑스</a> · <a href="https://lms.yu.ac.kr/" target="_blank" rel="noopener">러닝엑스 웹</a></p>
   </details>`;
+}
+
+function placeCard(c){
+  const btns = [];
+  if(c.kind === "건물") btns.push(`<a class="small-btn" href="${MAP_N(c.name)}" target="_blank" rel="noopener">네이버 지도 ↗</a>`, `<a class="small-btn" href="${MAP_K(c.name)}" target="_blank" rel="noopener">카카오맵 ↗</a>`);
+  if(c.link) btns.push(`<a class="small-btn" href="${esc(c.link)}" target="_blank" rel="noopener">바로가기 ↗</a>`);
+  if(c.phone) btns.push(`<a class="small-btn" href="tel:${c.phone.replace(/-/g,"")}">${esc(c.phone)}</a>`);
+  return `<article class="notice"><div class="top"><h3>${esc(c.name)}</h3><span class="pill info">${esc(c.kind)}</span></div>
+    <p>${esc(c.info)}</p>${btns.length ? `<div class="chips">${btns.join("")}</div>` : ""}</article>`;
+}
+function campusSearch(q){
+  const t = q.replace(/\s+/g, "");
+  return CAMPUS.map(c => {
+    let s = 0;
+    [c.name, ...c.aliases].forEach(k => { const kk = k.replace(/\s+/g, ""); if(kk && t.includes(kk)) s = Math.max(s, kk.length + (k === c.name ? 1 : 0)); });
+    return {c, s};
+  }).filter(x => x.s > 0).sort((a,b) => b.s - a.s).slice(0, 3).map(x => x.c);
 }
 
 /* tabs */
@@ -816,6 +883,7 @@ function renderCampus(){
 }
 renderCampus();
 setInterval(renderBus, 60000);
+$("#tel-list").innerHTML = CAMPUS.filter(c => c.kind === "연락처").map(c => `<a class="row" href="tel:${c.phone.replace(/-/g,"")}"><strong>${esc(c.name)}</strong><span class="note" style="font-variant-numeric:tabular-nums">${esc(c.phone)}</span><small>${esc(c.info)}</small></a>`).join("");
 
 /* 공지 자동 갱신: 내 웹주소(GitHub) 버전은 매일 갱신되는 data.json을 읽어요 */
 function renderAll(){ renderFit(); renderCounts(); renderNew(); renderList(); renderCampus(); if(progSrc) renderProg(); }
@@ -829,7 +897,7 @@ if(!IN_CLAUDE){
   }).catch(() => {});
 }
 
-const SUGGEST = ["이번 주 과제 마감 알려줘","지금 신청할 수 있는 거 있어?","경영학과 대상 프로그램 알려줘","상경계 취업 프로그램 알려줘","교내추천 채용 있어?"];
+const SUGGEST = ["이번 주 과제 마감 알려줘","상경관 어디야?","장학금 문의 어디로 해?","지금 신청할 수 있는 거 있어?","경영학과 대상 프로그램 알려줘","상경계 취업 프로그램 알려줘","교내추천 채용 있어?"];
 $("#suggest").innerHTML = SUGGEST.map(s => `<button class="chip" type="button">${esc(s)}</button>`).join("");
 $("#suggest").addEventListener("click", e => { const c = e.target.closest(".chip"); if(c) ask(c.textContent); });
 
@@ -838,9 +906,14 @@ const getRules = () => `너는 영남대학교 학생을 돕는 'All for YU' 공
 - 아래 [공지 데이터]에 있는 내용만으로 답해. 없는 사실은 지어내지 말고 "모은 공지에서는 찾지 못했어요. 학교 홈페이지나 해당 부서에 확인해 주세요."라고 말해.
 - 친근한 존댓말, 한국어로, 휴대폰 화면에 맞게 짧게(3~6줄). 날짜·장소·대상·신청방법을 우선 알려줘.
 - 오늘 기준으로 마감이 지났으면 "마감됨"이라고 분명히 말해.
-- 근거로 쓴 공지는 문장 끝에 [#번호] 형식으로 표시해.
+- 근거로 쓴 공지는 문장 끝에 [#번호], 캠퍼스 정보는 [@c번호] 형식으로 표시해. 건물·연락처·시설 질문은 [캠퍼스 정보]로 답하고, 정확한 위치는 지도 버튼으로 확인하라고 안내해.
+- 추천은 관련성이 확실한 것만 2~4개 골라. 제목 앞 [학과명]이나 대상 학과가 정해진 프로그램은 그 학과 학생에게만 추천해(예: [신소재공학부], [재맞고] 역사학과·통계학과 특강은 경영학과 학생에게 추천하지 마). 학생이 학과·학년·관심사를 말하면 그 조건에 안 맞는 건 빼. 맞는 게 없으면 억지로 채우지 말고 "딱 맞는 건 없어요"라고 말해.
+- 추천할 때는 항목마다 "왜 맞는지"를 한 줄로 붙여.
 - 유토피아·어울림 항목의 신청 현황은 ${DATA_DATE} 기준이라 바뀌었을 수 있어. 신청은 원문 링크에서 하라고 안내해. 경영학과는 상경계열이야.
 - 학교 공지와 무관한 질문, 개인정보(학번·비밀번호 등) 요청에는 답하지 말고 공지 관련 질문을 부탁해.
+
+[캠퍼스 정보]
+${CAMPUS.map(c => `@${c.id} [${c.kind}] ${c.name}${c.aliases.length ? " (" + c.aliases.join(", ") + ")" : ""}${c.phone ? " | 전화 " + c.phone : ""} | ${c.info}`).join("\n")}
 
 [공지 데이터]
 ${NOTICES.map(n => `#${n.id} [${n.cat}] ${n.title} | 게시 ${n.posted || "-"} | 시작 ${n.from || "-"} | 마감 ${n.deadline || "없음"} | ${n.body}`).join("\n")}`;
@@ -852,13 +925,19 @@ function addMsg(role, html){
   m.innerHTML = `<div class="bubble">${html}</div>`; $("#thread").append(m);
   $("#main").scrollTop = $("#main").scrollHeight; return m;
 }
-const formatAnswer = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\s*\[#(\d+)\]/g, "");
+const formatAnswer = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\s*\[(?:#\d+|@c\d+)(?:\s*,\s*(?:#\d+|@c\d+))*\]/g, "");
 function renderRefs(m, text){
   const ids = [...new Set([...text.matchAll(/\[#(\d+)\]/g)].map(x => +x[1]))];
   const list = ids.map(id => NOTICES.find(n => n.id === id)).filter(Boolean); if(!list.length) return;
   const r = document.createElement("div"); r.className = "refs";
   r.innerHTML = list.map(n => `<a class="ref" href="${esc(n.url)}" target="_blank" rel="noopener">#${n.id} ${esc(n.title.length > 22 ? n.title.slice(0,22) + "…" : n.title)}</a>`).join("");
   m.append(r);
+}
+function renderPlaces(m, text){
+  const ids = [...new Set([...text.matchAll(/@(c\d+)/g)].map(x => x[1]))];
+  const list = ids.map(id => CAMPUS.find(c => c.id === id)).filter(Boolean).slice(0, 3); if(!list.length) return;
+  const box = document.createElement("div"); box.className = "view"; box.style.cssText = "margin:0;gap:8px";
+  box.innerHTML = list.map(placeCard).join(""); m.append(box);
 }
 function keywordSearch(q){
   const words = q.replace(/[?!.,]/g," ").split(/\s+/).filter(w => w.length >= 2).map(w => w.replace(/(은|는|이|가|을|를|에|에서|좀|있어|알려줘|해|어디서|뭐|있나요)$/,""));
@@ -882,6 +961,13 @@ async function ask(q){
   }
   await samplePromise;
   if(!aiReady()){
+    const places = campusSearch(q);
+    const askPlace = /어디|위치|전화|문의|번호|연락|운영|시간|몇 ?시|가는|가려면/.test(q) || (places[0] && places[0].kind === "건물");
+    if(places.length && askPlace){
+      const m = addMsg("bot", places[0].kind === "연락처" ? "이쪽으로 문의하면 돼요." : "찾는 곳 정보예요. 정확한 위치는 지도 버튼으로 확인하세요.");
+      const box = document.createElement("div"); box.className = "view"; box.style.cssText = "margin:0;gap:8px"; box.innerHTML = places.map(placeCard).join(""); m.append(box);
+      return;
+    }
     const hits = keywordSearch(q);
     const m = addMsg("bot", hits.length ? `관련 공지 ${hits.length}건을 찾았어요.` : "모은 공지에서는 찾지 못했어요. 학교 홈페이지나 해당 부서에 확인해 주세요.");
     if(hits.length){ const box = document.createElement("div"); box.className = "view"; box.style.cssText = "margin:0;gap:8px"; box.innerHTML = hits.map(card).join(""); m.append(box); }
@@ -893,7 +979,7 @@ async function ask(q){
   try {
     const text = await askAI(ctl.signal, ({text}) => { bubble.classList.remove("thinking"); bubble.innerHTML = formatAnswer(text); $("#main").scrollTop = $("#main").scrollHeight; });
     turns.push({role:"assistant", content:text});
-    bubble.classList.remove("thinking"); bubble.innerHTML = formatAnswer(text); renderRefs(m, text);
+    bubble.classList.remove("thinking"); bubble.innerHTML = formatAnswer(text); renderRefs(m, text); renderPlaces(m, text);
   } catch(e){
     turns.pop(); bubble.classList.remove("thinking");
     bubble.innerHTML = (e && e.text ? formatAnswer(e.text) + "<br>" : "") + esc(aiErrorCopy(e));
