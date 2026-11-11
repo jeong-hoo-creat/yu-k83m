@@ -996,7 +996,8 @@ if(!IN_CLAUDE){
   fetchFirst(repoUrls("profs.json")).then(d => {
     if(!d || !Array.isArray(d.profs) || d.profs.length < 10) return;
     for(let i = CAMPUS.length - 1; i >= 0; i--) if(CAMPUS[i].kind === "교수") CAMPUS.splice(i, 1);
-    d.profs.forEach(p => CAMPUS.push(profEntry([p.name, p.pos || "교수", p.field || "", p.room || "", p.phone || ""])));
+    // 새로 읽은 값이 비어 있으면 기존에 넣어둔 값으로 채워요
+    d.profs.forEach(p => { const old = PROF.find(r => r[0] === p.name) || []; CAMPUS.push(profEntry([p.name, p.pos || old[1] || "교수", p.field || old[2] || "", p.room || old[3] || "", p.phone || old[4] || ""])); });
     renderProfs(); renderMyCourses();
   }).catch(() => {});
   fetchFirst(repoUrls("data.json")).then(d => {

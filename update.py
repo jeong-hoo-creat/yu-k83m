@@ -400,12 +400,60 @@ def parse_profs(page):
     return out
 
 
+def page_lines(page):
+    page = re.sub(r"(?is)<(script|style).*?</\1>", " ", page)
+    page = re.sub(r'(?is)<a[^>]+href="tel:([^"]+)"[^>]*>.*?</a>', lambda m: "\nTEL " + m.group(1) + "\n", page)
+    lines = [re.sub(r"\s+", " ", html.unescape(x)).strip() for x in re.sub(r"(?s)<[^>]+>", "\n", page).split("\n")]
+    return [x for x in lines if x]
+
+
+def parse_profs_loose(page):
+    """라벨이 없을 때: '교수/부교수/조교수' 줄을 기준으로 앞의 이름, 뒤의 연구실·전화를 찾아요."""
+    lines = page_lines(page)
+    out, seen = [], set()
+    for i, ln in enumerate(lines):
+        pos = re.fullmatch(r"(?:직위\s*[:：]?\s*)?(교수|부교수|조교수|명예교수|석좌교수|특임교수)", ln)
+        if not pos:
+            continue
+        name = ""
+        for j in range(i - 1, max(-1, i - 6), -1):
+            mm = re.fullmatch(r"(?:성명\s*[:：]?\s*)?([가-힣]{2,4})(?:\s*(?:교수|교수님))?", lines[j])
+            if mm and mm.group(1) not in ("교수", "부교수", "조교수", "연구실", "연구분야", "전화", "이메일", "학위", "직위", "성명", "전공"):
+                name = mm.group(1)
+                break
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        room = phone = field = ""
+        for k in range(i + 1, min(len(lines), i + 16)):
+            t = lines[k]
+            if re.fullmatch(r"(교수|부교수|조교수|명예교수|석좌교수|특임교수)", t):
+                break
+            if not phone:
+                ph = re.search(r"(?:053-?)?810-?\d{4}", t)
+                if ph:
+                    phone = "053-810-" + re.sub(r"\D", "", ph.group(0))[-4:]
+            if not room and "상경관" in t:
+                room = re.sub(r"^.*?(상경관)", r"\1", t).replace("4층", "").strip()
+            if not field and re.match(r"^(연구분야|전공)", t):
+                v = re.sub(r"^(연구분야|전공)\s*[:：]?\s*", "", t)
+                field = v if v else (lines[k + 1] if k + 1 < len(lines) else "")
+        out.append({"name": name, "pos": pos.group(1), "field": field.replace("미기재", ""), "room": room, "phone": phone})
+    return out
+
+
 def sync_profs():
     try:
-        profs = parse_profs(get(PROF_URL))
+        page = get(PROF_URL)
     except Exception as e:
         log(f"[교수 연락처] 페이지를 못 읽었어요: {e}")
         return
+    profs = parse_profs(page)
+    if len(profs) < 10:
+        profs = parse_profs_loose(page)
+    if len(profs) < 10:
+        sample = [x for x in page_lines(page) if re.search(r"교수|상경관|810", x)][:12]
+        log(f"[교수 연락처] 참고용 페이지 일부: {sample}")
     if len(profs) < 10:
         log(f"[교수 연락처] {len(profs)}명만 읽혀서 기존 정보를 그대로 둬요")
         return
