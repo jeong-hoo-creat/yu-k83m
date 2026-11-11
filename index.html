@@ -678,7 +678,13 @@ const whenLabel = e => e.allDay ? fmtKSTDay.format(e.t) + " (하루 종일)" : f
 function dday(e){
   const day = ms => Math.floor((ms + 9*3600000) / 86400000);
   const n = day(e.t) - day(Date.now());
-  if(n <= 0) return {cls:"soon", label:"오늘"};
+  if(n <= 0){
+    if(e.allDay) return {cls:"soon", label:"오늘"};
+    const left = e.t - Date.now();
+    if(left <= 0) return {cls:"closed", label:"마감됨"};
+    const h = Math.floor(left / 3600000), m = Math.floor((left % 3600000) / 60000);
+    return {cls:"soon", label: h ? `${h}시간 ${m}분 남음` : `${m}분 남음`};
+  }
   return {cls: n <= 2 ? "soon" : "open", label:"D-" + n};
 }
 function renderLX(){
@@ -698,6 +704,7 @@ $("#lx-file").addEventListener("change", async e => {
   const evs = parseICS(await f.text()); e.target.value = "";
   if(!evs.length){ $("#lx-list").innerHTML = `<div class="empty">일정을 읽지 못했어요. 러닝엑스 캘린더 피드에서 받은 .ics 파일인지 확인해 주세요.</div>`; return; }
   lxEvents = evs; store.set("yu-lx-events", lxEvents); lxAll = false; renderLX(); detectCourses(); renderMyCourses();
+setInterval(renderLX, 60000);
 });
 $("#lx-clear").addEventListener("click", () => { lxEvents = []; store.del("yu-lx-events"); renderLX(); });
 $("#lx-more").addEventListener("click", () => { lxAll = !lxAll; renderLX(); });
