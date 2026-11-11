@@ -26,7 +26,7 @@ button.mark{flex:none;border:1px solid var(--line);background:var(--bg);color:va
 </head>
 <body>
 <main>
-  <h1>앱 열기 주소 테스트</h1>
+  <h1>스마트출결 열기 주소 테스트</h1>
   <p>«열기»를 하나씩 눌러보세요. 앱이 바로 열리면 성공이에요. 앱으로 갔다가 돌아와서 그 줄의 «됨»을 눌러 표시해 주세요. 안 되는 주소는 Safari가 경고만 띄우고 끝나요. 아이폰 Safari에서 열어야 해요(Claude 앱 안에서는 안 돼요).</p>
   <section>
     <h2>직접 입력해서 열어보기</h2>
@@ -40,9 +40,11 @@ button.mark{flex:none;border:1px solid var(--line);background:var(--bg);color:va
 </main>
 <script>
 const GROUPS = {
-  "스마트출결 (추가 후보 1: 학교 주소형)": ["kr.ac.yu.smartattend://","kr.ac.yu.attend://","kr.ac.yu.smart://","kr.ac.yu.attendance://","kr.ac.yu.smartattendance://","kr.ac.ynu.attend://","kr.ac.yu://","ac.yu.smart://","yu.smartattend://","yu.attend://"],
-  "스마트출결 (추가 후보 2: 이름형)": ["yusa://","yusmartattendance://","yuchulgyeol://","chulgyeol://","smartchul://","attend://","attendance://","eattend://","eattendance://","smartattendance2://","yuattend2://","yunew://","yusmartcheck://"],
-  "스마트출결 (추가 후보 3: 출석 방식형)": ["beacon://","yubeacon://","bleattend://","yuqr://","qrattend://","yuclass://","eclass://","myattend://"]
+  "① 이름 영어형": ["smartattendancemanagement://","smartattendancemanager://","smartattendmanager://","smartattendmgr://","attendancemanager://","attendmanager://","attendmgr://"],
+  "② 줄임말형": ["sam://","sams://","yusam://","yusams://","smam://","yuam://"],
+  "③ 한글 발음형": ["chulgyeolgwanri://","smartchulgyeol://","smartchulgyeolgwanri://","yuchulgyeolgwanri://"],
+  "④ 학교·앱 주소형": ["kr.ac.yu.smartattendancemanagement://","kr.ac.yu.attendmanager://","kr.ac.yu.sam://","kr.ac.yu.yuattend://","kr.ac.yu.smartattendance2025://","com.yu.smartattend://"],
+  "⑤ 리뉴얼(2025)형": ["yusmart2025://","smartattend2025://","yuattend2025://"]
 };
 const ok = new Set();
 document.getElementById("custom-go").addEventListener("click", e => {
