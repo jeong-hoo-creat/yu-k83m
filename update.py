@@ -277,5 +277,80 @@ def main():
     log(f"완료: 새 글 {added}건, 바뀐 항목 {updated}건, 전체 {len(notices)}건")
 
 
+# ---------- 내 일정: 러닝엑스 캘린더 피드 → 암호화해서 저장 ----------
+def parse_ics(text):
+    text = re.sub(r"\r\n?", "\n", text).replace("\n ", "").replace("\n\t", "")
+    out, cur = [], None
+    for line in text.split("\n"):
+        if line == "BEGIN:VEVENT":
+            cur = {}
+            continue
+        if line == "END:VEVENT":
+            if cur and cur.get("title") and cur.get("t"):
+                out.append(cur)
+            cur = None
+            continue
+        if cur is None or ":" not in line:
+            continue
+        head, val = line.split(":", 1)
+        name = head.split(";")[0].upper()
+        if name == "SUMMARY":
+            cur["title"] = re.sub(r"\\([,;\\])", r"\1", val.replace("\\n", " "))[:160]
+        elif name == "DTSTART" and "t" not in cur:
+            m = re.match(r"^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$", val.strip())
+            if m:
+                y, mo, d, h, mi, sec, z = m.groups()
+                if h is None:
+                    t = dt.datetime(int(y), int(mo), int(d), 23, 59, tzinfo=KST)
+                    cur["allDay"] = True
+                else:
+                    tz = dt.timezone.utc if z else KST
+                    t = dt.datetime(int(y), int(mo), int(d), int(h), int(mi), int(sec or 0), tzinfo=tz)
+                    cur["allDay"] = False
+                cur["t"] = int(t.timestamp() * 1000)
+        elif name == "URL" and val.strip().startswith("http"):
+            cur["url"] = val.strip()
+    return out
+
+
+def sync_schedule():
+    feed, pw = os.environ.get("LMS_FEED_URL", "").strip(), os.environ.get("SCHEDULE_PASS", "")
+    if not feed or not pw:
+        log("[내 일정] 비밀값이 없어서 건너뛰어요")
+        return
+    import base64, hashlib, hmac
+    try:
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    except ImportError:
+        log("[내 일정] cryptography 패키지가 없어요")
+        return
+    try:
+        events = parse_ics(get(feed))
+    except Exception as e:
+        log(f"[내 일정] 피드를 못 읽었어요: {e}")
+        return
+    now_ms = int(dt.datetime.now(KST).timestamp() * 1000)
+    events = sorted([e for e in events if e["t"] >= now_ms - 30 * 86400000], key=lambda e: e["t"])
+    plain = json.dumps(events, ensure_ascii=False, separators=(",", ":")).encode()
+    hkey = hashlib.pbkdf2_hmac("sha256", pw.encode(), b"all-for-yu-hash", 200000, 32)
+    h = hmac.new(hkey, plain, "sha256").hexdigest()
+    try:
+        with open("schedule.enc.json", encoding="utf-8") as f:
+            if json.load(f).get("h") == h:
+                log(f"[내 일정] 바뀐 일정 없음 ({len(events)}건)")
+                return
+    except Exception:
+        pass
+    salt, iv = os.urandom(16), os.urandom(12)
+    key = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt, 200000, 32)
+    ct = AESGCM(key).encrypt(iv, plain, None)
+    b = lambda x: base64.b64encode(x).decode()
+    with open("schedule.enc.json", "w", encoding="utf-8") as f:
+        json.dump({"v": 1, "salt": b(salt), "iv": b(iv), "ct": b(ct), "h": h,
+                   "updated": dt.datetime.now(KST).isoformat(timespec="minutes")}, f)
+    log(f"[내 일정] 암호화해서 저장 ({len(events)}건)")
+
+
 if __name__ == "__main__":
     main()
+    sync_schedule()

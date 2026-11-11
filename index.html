@@ -174,6 +174,15 @@ a.row:hover strong{color:var(--accent)}
       </div>
       <div class="rows" id="lx-list"></div>
       <button class="small-btn" type="button" id="lx-more" hidden></button>
+      <details class="how" id="auto-box"><summary id="auto-sum">자동 업데이트 설정</summary>
+        <p style="margin:6px 0">GitHub에 넣은 일정 비밀번호(SCHEDULE_PASS)를 입력하면 새 과제가 하루 두 번 자동으로 들어와요. 비밀번호는 이 기기에만 저장돼요.</p>
+        <div class="field">
+          <input id="sched-pass" type="password" placeholder="일정 비밀번호" autocomplete="off" aria-label="일정 비밀번호">
+          <button class="small-btn primary" type="button" id="sched-save">연결</button>
+          <button class="small-btn" type="button" id="sched-off" hidden>해제</button>
+        </div>
+        <p class="err" id="sched-err" hidden></p>
+      </details>
       <details class="how"><summary>러닝엑스 일정 불러오는 법</summary>
         <ol>
           <li>러닝엑스 웹 → 캘린더 → «캘린더 피드» 주소로 .ics 파일 받기 (PC가 편해요)</li>
@@ -526,6 +535,56 @@ $("#lx-clear").addEventListener("click", () => { lxEvents = []; store.del("yu-lx
 $("#lx-more").addEventListener("click", () => { lxAll = !lxAll; renderLX(); });
 renderLX();
 
+/* 내 일정 자동 업데이트: GitHub이 암호화해 둔 schedule.enc.json을 이 기기의 비밀번호로 풀어요 */
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+function repoUrls(file){
+  const u = location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : "";
+  const r = location.pathname.split("/").filter(Boolean)[0] || "";
+  return (u && r ? [`https://raw.githubusercontent.com/${u}/${r}/main/${file}`] : []).concat([file]);
+}
+function fetchFirst(urls){
+  const go = i => i >= urls.length ? Promise.resolve(null)
+    : fetch(urls[i], {cache:"no-store"}).then(r => r.ok ? r.json() : go(i + 1)).catch(() => go(i + 1));
+  return go(0);
+}
+async function decryptSchedule(pass){
+  const d = await fetchFirst(repoUrls("schedule.enc.json"));
+  if(!d || !d.ct) throw {code:"missing"};
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(d.salt), iterations:200000, hash:"SHA-256"}, base, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  let plain;
+  try { plain = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(d.iv)}, key, b64(d.ct)); }
+  catch(e){ throw {code:"wrong"}; }
+  return {events: JSON.parse(new TextDecoder().decode(plain)), updated: d.updated};
+}
+function schedUI(on, updated){
+  $("#sched-off").hidden = !on; $("#sched-pass").hidden = on; $("#sched-save").hidden = on;
+  $("#auto-sum").textContent = on ? `자동 업데이트 켜짐${updated ? " · " + updated.slice(5,10).replace("-", ".") + " " + updated.slice(11,16) : ""}` : "자동 업데이트 설정";
+}
+async function syncSchedule(pass, showErr){
+  try {
+    const r = await decryptSchedule(pass);
+    lxEvents = r.events; store.set("yu-lx-events", lxEvents); renderLX();
+    schedUI(true, r.updated); $("#sched-err").hidden = true; return true;
+  } catch(e){
+    if(showErr){ $("#sched-err").hidden = false; $("#sched-err").textContent = e.code === "wrong" ? "비밀번호가 GitHub의 SCHEDULE_PASS와 달라요." : e.code === "missing" ? "아직 암호화된 일정 파일이 없어요. GitHub에서 Run workflow를 한 번 실행해 주세요." : "불러오지 못했어요. 인터넷 연결을 확인해 주세요."; }
+    return false;
+  }
+}
+if(IN_CLAUDE){ $("#auto-box").hidden = true; }
+else {
+  const saved = store.get("yu-sched-pass", "");
+  schedUI(false);
+  if(saved) syncSchedule(saved, false).then(ok => { if(!ok) schedUI(false); });
+  $("#sched-save").addEventListener("click", async () => {
+    const p = $("#sched-pass").value; if(!p) return;
+    $("#sched-save").disabled = true; $("#sched-save").textContent = "확인 중…";
+    if(await syncSchedule(p, true)){ store.set("yu-sched-pass", p); $("#sched-pass").value = ""; }
+    $("#sched-save").disabled = false; $("#sched-save").textContent = "연결";
+  });
+  $("#sched-off").addEventListener("click", () => { store.del("yu-sched-pass"); schedUI(false); });
+}
+
 /* 프로그램 */
 const INTERESTS = {
   "경영·상경": n => n.cat === "경영학과" || /경영|상경|무역/.test(n.title + n.body),
@@ -754,12 +813,7 @@ setInterval(renderBus, 60000);
 function renderAll(){ renderFit(); renderCounts(); renderNew(); renderList(); renderCampus(); if(progSrc) renderProg(); }
 if(!IN_CLAUDE){
   // GitHub 저장소의 최신 data.json을 먼저 읽고, 안 되면 같은 폴더의 data.json
-  const ghUser = location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : "";
-  const ghRepo = location.pathname.split("/").filter(Boolean)[0] || "";
-  const urls = (ghUser && ghRepo ? [`https://raw.githubusercontent.com/${ghUser}/${ghRepo}/main/data.json`] : []).concat(["data.json"]);
-  const tryLoad = i => i >= urls.length ? Promise.resolve(null)
-    : fetch(urls[i], {cache:"no-store"}).then(r => r.ok ? r.json() : tryLoad(i + 1)).catch(() => tryLoad(i + 1));
-  tryLoad(0).then(d => {
+  fetchFirst(repoUrls("data.json")).then(d => {
     if(!d || !Array.isArray(d.notices) || d.notices.length < 5) return;
     NOTICES.splice(0, NOTICES.length, ...d.notices);
     if(d.updated){ const t = new Date(d.updated); DATA_DATE = `${t.getMonth()+1}월 ${t.getDate()}일`; }
