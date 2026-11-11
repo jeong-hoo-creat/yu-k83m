@@ -291,7 +291,7 @@ a.row:hover strong{color:var(--accent)}
     <section class="panel" aria-labelledby="tel-h">
       <div class="ph"><h2 id="tel-h">자주 찾는 연락처</h2><span class="note">눌러서 전화</span></div>
       <div class="rows" id="tel-list"></div>
-      <details class="how"><summary>경영학과 교수 연락처 (19명)</summary><div class="rows" id="prof-list"></div>
+      <details class="how"><summary>경영학과 교수 연락처</summary><div class="rows" id="prof-list"></div>
         <p style="margin:6px 0 0">경영학과 홈페이지 교수진 기준. 연구실·번호가 바뀌었을 수 있어요.</p></details>
     </section>
     <section class="panel" aria-labelledby="cal-h">
@@ -513,12 +513,12 @@ const PROF = [
   ["전인","교수","노사관계","상경관 421호","053-810-2750"],
   ["허용석","교수","운영관리","상경관 325호","053-810-2837"]
 ];
-PROF.forEach(([n, pos, field, room, phone], i) => CAMPUS.push({
-  id:"p" + (i + 1), kind:"교수", name:n + " " + pos, aliases:[n, n + "교수", n + " 교수님", n + "교수님"],
-  phone: phone || "053-810-3213",
-  info:`경영학과 ${pos}${field ? " · " + field : ""}. 연구실 ${room || "학과 홈페이지에서 확인"}.${phone ? "" : " 연구실 번호가 공개돼 있지 않아 경영대학 행정실 번호예요."}`,
-  room
-}));
+function profEntry([n, pos, field, room, phone]){
+  return {id:"p-" + n, kind:"교수", name:n + " " + pos, aliases:[n, n + "교수", n + " 교수님", n + "교수님"],
+    phone: phone || "053-810-3213", room,
+    info:`경영학과 ${pos}${field ? " · " + field : ""}. 연구실 ${room || "학과 홈페이지에서 확인"}.${phone ? "" : " 연구실 번호가 공개돼 있지 않아 경영대학 행정실 번호예요."}`};
+}
+PROF.forEach(r => CAMPUS.push(profEntry(r)));
 
 
 function status(n){
@@ -587,6 +587,7 @@ function campusSearch(q){
 
 /* 내 과목 */
 let myCourses = store.get("yu-my-courses", {});
+Object.values(myCourses).forEach(c => { const m = /^p(\d+)$/.exec(c.prof || ""); if(m && PROF[+m[1] - 1]) c.prof = "p-" + PROF[+m[1] - 1][0]; });
 function detectCourses(){
   let changed = false;
   (store.get("yu-lx-events", []) || []).forEach(e => {
@@ -985,12 +986,19 @@ function renderCampus(){
 renderCampus();
 setInterval(renderBus, 60000);
 $("#tel-list").innerHTML = CAMPUS.filter(c => c.kind === "연락처").map(c => `<a class="row" href="tel:${c.phone.replace(/-/g,"")}"><strong>${esc(c.name)}</strong><span class="note" style="font-variant-numeric:tabular-nums">${esc(c.phone)}</span><small>${esc(c.info)}</small></a>`).join("");
-$("#prof-list").innerHTML = CAMPUS.filter(c => c.kind === "교수").map(c => `<a class="row" href="tel:${c.phone.replace(/-/g,"")}"><strong>${esc(c.name)}</strong><span class="note" style="font-variant-numeric:tabular-nums">${esc(c.phone)}</span><small>${esc(c.info)}</small></a>`).join("");
+function renderProfs(){ $("#prof-list").innerHTML = CAMPUS.filter(c => c.kind === "교수").map(c => `<a class="row" href="tel:${c.phone.replace(/-/g,"")}"><strong>${esc(c.name)}</strong><span class="note" style="font-variant-numeric:tabular-nums">${esc(c.phone)}</span><small>${esc(c.info)}</small></a>`).join(""); }
+renderProfs();
 
 /* 공지 자동 갱신: 내 웹주소(GitHub) 버전은 매일 갱신되는 data.json을 읽어요 */
 function renderAll(){ renderFit(); renderCounts(); renderNew(); renderList(); renderCampus(); if(progSrc) renderProg(); }
 if(!IN_CLAUDE){
   // GitHub 저장소의 최신 data.json을 먼저 읽고, 안 되면 같은 폴더의 data.json
+  fetchFirst(repoUrls("profs.json")).then(d => {
+    if(!d || !Array.isArray(d.profs) || d.profs.length < 10) return;
+    for(let i = CAMPUS.length - 1; i >= 0; i--) if(CAMPUS[i].kind === "교수") CAMPUS.splice(i, 1);
+    d.profs.forEach(p => CAMPUS.push(profEntry([p.name, p.pos || "교수", p.field || "", p.room || "", p.phone || ""])));
+    renderProfs(); renderMyCourses();
+  }).catch(() => {});
   fetchFirst(repoUrls("data.json")).then(d => {
     if(!d || !Array.isArray(d.notices) || d.notices.length < 5) return;
     NOTICES.splice(0, NOTICES.length, ...d.notices);
@@ -1003,7 +1011,28 @@ const SUGGEST = ["이번 주 과제 마감 알려줘","상경관 어디야?","�
 $("#suggest").innerHTML = SUGGEST.map(s => `<button class="chip" type="button">${esc(s)}</button>`).join("");
 $("#suggest").addEventListener("click", e => { const c = e.target.closest(".chip"); if(c) ask(c.textContent); });
 
-const getRules = () => `너는 영남대학교 학생을 돕는 'All for YU' 공지 도우미야. 오늘은 ${TODAY_LABEL}야.
+function bigrams(x){ const t = String(x).toLowerCase().replace(/[^0-9a-z가-힣]/g, ""); const o = new Set(); for(let i = 0; i < t.length - 1; i++) o.add(t.slice(i, i + 2)); return o; }
+function pickRelevant(){
+  const q = turns.filter(t => t.role === "user").slice(-3).map(t => t.content).join(" ");
+  const qb = bigrams(q);
+  ["학과","대상","프로","로그","그램","추천","알려","려줘","해줘","있어","어디","뭐있","관련"].forEach(x => qb.delete(x));
+  const deptPenalty = n => {
+    const ds = [...n.title.matchAll(/([가-힣]{2,}(?:학과|학부))/g)].map(m => m[1].replace(/학과|학부/, ""));
+    if(/이공계/.test(n.title) && /경영|상경|인문|사회/.test(q)) return -6;
+    if(!ds.length) return 0;
+    return ds.some(d => q.includes(d)) ? 0 : -6;
+  };
+  const score = text => { const b = bigrams(text); let n = 0; qb.forEach(x => { if(b.has(x)) n++; }); return n; };
+  const isOpen = n => n.deadline && status(n).cls !== "closed";
+  const wantsOpen = /지금|신청|가능|이번|마감|추천|있어|있나|뭐/.test(q);
+  const ns = NOTICES.map(n => ({n, s: score(n.title + " " + n.body + " " + n.cat + " " + n.source) + (wantsOpen && isOpen(n) ? 2 : 0) + deptPenalty(n)}))
+    .filter(x => x.s > 1).sort((a,b) => b.s - a.s).slice(0, 15).map(x => x.n);
+  const soon = NOTICES.filter(n => isOpen(n) && deptPenalty(n) === 0).sort((a,b) => a.deadline.localeCompare(b.deadline)).slice(0, 5);
+  const notices = [...new Set([...ns, ...(wantsOpen || ns.length < 5 ? soon : [])])];
+  const cs = CAMPUS.map(c => ({c, s: score(c.name + " " + c.aliases.join(" ") + " " + c.info)})).filter(x => x.s > 1).sort((a,b) => b.s - a.s).slice(0, 8).map(x => x.c);
+  return {notices, cs};
+}
+const getRules = () => { const P = pickRelevant(); return `너는 영남대학교 학생을 돕는 'All for YU' 공지 도우미야. 오늘은 ${TODAY_LABEL}야.
 규칙:
 - 아래 [공지 데이터]에 있는 내용만으로 답해. 없는 사실은 지어내지 말고 "모은 공지에서는 찾지 못했어요. 학교 홈페이지나 해당 부서에 확인해 주세요."라고 말해.
 - 친근한 존댓말, 한국어로, 휴대폰 화면에 맞게 짧게(3~6줄). 날짜·장소·대상·신청방법을 우선 알려줘.
@@ -1016,10 +1045,12 @@ const getRules = () => `너는 영남대학교 학생을 돕는 'All for YU' 공
 - 학교 공지와 무관한 질문, 개인정보(학번·비밀번호 등) 요청에는 답하지 말고 공지 관련 질문을 부탁해.
 
 [캠퍼스 정보]
-${CAMPUS.map(c => `@${c.id} [${c.kind}] ${c.name}${c.aliases.length ? " (" + c.aliases.join(", ") + ")" : ""}${c.phone ? " | 전화 " + c.phone : ""} | ${c.info}`).join("\n")}
+${P.cs.map(c => `@${c.id} [${c.kind}] ${c.name}${c.aliases.length ? " (" + c.aliases.join(", ") + ")" : ""}${c.phone ? " | 전화 " + c.phone : ""} | ${c.info}`).join("\n")}
 
 [공지 데이터]
-${NOTICES.map(n => `#${n.id} [${n.cat}] ${n.title} | 게시 ${n.posted || "-"} | 시작 ${n.from || "-"} | 마감 ${n.deadline || "없음"} | ${n.body}`).join("\n")}`;
+${P.notices.map(n => `#${n.id} [${n.cat}] ${n.title} | 게시 ${n.posted || "-"} | 시작 ${n.from || "-"} | 마감 ${n.deadline || "없음"} | ${n.body}`).join("\n")}
+
+(위 공지·캠퍼스 정보는 질문과 관련 있는 것만 골라 보낸 일부야. 여기에 없으면 '모은 정보에서는 찾지 못했어요'라고 말하고, 공지 탭이나 프로그램 탭에서도 찾아보라고 안내해.)`; };
 
 const turns = [];
 let ctl = null;

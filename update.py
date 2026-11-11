@@ -351,6 +351,70 @@ def sync_schedule():
     log(f"[내 일정] 암호화해서 저장 ({len(events)}건)")
 
 
+# ---------- 경영학과 교수 연락처 → profs.json ----------
+PROF_URL = "https://www.yu.ac.kr/biz/grad/grad-prof.do"
+LABELS = {"성명": "name", "이름": "name", "직위": "pos", "직급": "pos", "연구분야": "field", "전공": "field",
+          "연구실": "room", "전화": "phone", "연락처": "phone", "전화번호": "phone"}
+
+
+def parse_profs(page):
+    page = re.sub(r"(?is)<(script|style).*?</\1>", " ", page)
+    lines = [html.unescape(x).strip() for x in re.sub(r"(?s)<[^>]+>", "\n", page).split("\n")]
+    lines = [re.sub(r"\s+", " ", x) for x in lines if x.strip()]
+    profs, cur, i = [], None, 0
+    while i < len(lines):
+        ln = lines[i]
+        m = re.match(r"^(성명|이름|직위|직급|연구분야|전공|연구실|전화번호|전화|연락처)\s*[:：]?\s*(.*)$", ln)
+        if m:
+            key, val = LABELS[m.group(1)], m.group(2).strip()
+            if not val and i + 1 < len(lines) and not re.match(r"^(성명|이름|직위|직급|학위|연구분야|전공|연구실|전화번호|전화|연락처|이메일|E-?mail)", lines[i + 1]):
+                val = lines[i + 1].strip()
+                i += 1
+            if key == "name":
+                if cur and cur.get("name"):
+                    profs.append(cur)
+                cur = {"name": re.sub(r"\s*(교수|부교수|조교수)$", "", val)}
+            elif cur is not None and val:
+                cur.setdefault(key, val)
+        i += 1
+    if cur and cur.get("name"):
+        profs.append(cur)
+    out = []
+    for p in profs:
+        name = p["name"].strip()
+        if not re.fullmatch(r"[가-힣]{2,4}", name):
+            continue
+        room, phone = p.get("room", ""), p.get("phone", "")
+        # 연구실 칸에 전화번호가 들어간 경우 정리
+        if re.search(r"\d{3,4}-\d{4}", room) and not re.search(r"[가-힣]", room):
+            phone, room = phone or room, ""
+        ph = re.search(r"(?:053-?)?810-?\d{4}", phone or "")
+        if ph:
+            digits = re.sub(r"\D", "", ph.group(0))
+            phone = "053-810-" + digits[-4:]
+        else:
+            phone = ""
+        room = re.sub(r"\s*4층\s*", " ", room).strip()
+        out.append({"name": name, "pos": p.get("pos", "교수"), "field": p.get("field", "").replace("미기재", ""),
+                    "room": room if "상경관" in room else "", "phone": phone})
+    return out
+
+
+def sync_profs():
+    try:
+        profs = parse_profs(get(PROF_URL))
+    except Exception as e:
+        log(f"[교수 연락처] 페이지를 못 읽었어요: {e}")
+        return
+    if len(profs) < 10:
+        log(f"[교수 연락처] {len(profs)}명만 읽혀서 기존 정보를 그대로 둬요")
+        return
+    with open("profs.json", "w", encoding="utf-8") as f:
+        json.dump({"updated": dt.datetime.now(KST).isoformat(timespec="minutes"), "profs": profs}, f, ensure_ascii=False, indent=1)
+    log(f"[교수 연락처] {len(profs)}명 저장")
+
+
 if __name__ == "__main__":
     main()
     sync_schedule()
+    sync_profs()
