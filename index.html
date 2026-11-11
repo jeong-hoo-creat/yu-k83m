@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>All for YU</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="All for YU">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="robots" content="noindex,nofollow">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* Layout: one-screen phone app — sticky header with tabs, scrolling main, composer only on the chat tab */
+:root{
+  --bg:#F2F4F1; --surface:#FFFFFF; --ink:#16201C; --muted:#5C6B64; --line:#D9E0DB;
+  --accent:#1E6B57; --accent-soft:#E1EFE9; --accent-ink:#FFFFFF;
+  --warn:#9A5B00; --warn-soft:#FBEFD9; --done:#7A8580; --done-soft:#ECEFED; --err:#A33A2B;
+  --font-display:"Do Hyeon","IBM Plex Sans KR",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --gl:max(16px, env(safe-area-inset-left, 0px)); --gr:max(16px, env(safe-area-inset-right, 0px));
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0F1513; --surface:#18201D; --ink:#E6ECE8; --muted:#97A59E; --line:#2A3531;
+  --accent:#5FBF9F; --accent-soft:#1D3029; --accent-ink:#0F1513;
+  --warn:#F0B354; --warn-soft:#33281A; --done:#8C9893; --done-soft:#222A27; --err:#F08A78; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.55;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+[hidden]{display:none!important}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent)}
+
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:10px var(--gr) 0 var(--gl)}
+.brand{display:flex;align-items:baseline;gap:8px;max-width:720px;margin:0 auto}
+.brand h1{font-family:var(--font-display);font-weight:400;font-size:26px;line-height:1.1;margin:0}
+.brand h1 b{color:var(--accent);font-weight:400}
+.brand span{font-size:13px;color:var(--muted)}
+.tabs{display:flex;gap:2px;max-width:720px;margin:6px auto 0;overflow-x:auto;scrollbar-width:none}
+.tab{white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px 9px;color:var(--muted);font-weight:500}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+
+main{flex:1;min-height:0;overflow-y:auto;padding:14px var(--gr) 20px var(--gl)}
+.view{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ph h2{font-family:var(--font-display);font-weight:400;font-size:21px;margin:0}
+.note{font-size:12px;color:var(--muted)}
+.empty{font-size:13px;color:var(--muted);background:var(--bg);border-radius:10px;padding:10px 12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:600}
+.small-btn{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600;text-decoration:none;color:var(--ink);white-space:nowrap}
+.small-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.pill{font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.pill.open{background:var(--accent-soft);color:var(--accent)}
+.pill.soon{background:var(--warn-soft);color:var(--warn)}
+.pill.closed,.pill.info{background:var(--done-soft);color:var(--done)}
+
+/* home */
+.apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.app{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;text-decoration:none;color:inherit;min-width:0}
+.app:active{transform:scale(.98)}
+.app strong{font-size:16px}
+.app span{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app em{font-style:normal;font-size:12px;color:var(--accent);font-weight:600;margin-top:2px}
+.fallback{font-size:11.5px;color:var(--muted);margin:-4px 2px 0}
+.rows{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 10px;padding:8px 0;border-top:1px solid var(--line);text-decoration:none;color:inherit;align-items:start}
+.row:first-child{border-top:0}
+.row strong{font-weight:500;font-size:14.5px;min-width:0;overflow-wrap:anywhere}
+.row small{grid-column:1/-1;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+a.row:hover strong{color:var(--accent)}
+.how{font-size:12.5px;color:var(--muted)}
+.how summary{cursor:pointer;color:var(--accent)}
+.how ol{margin:6px 0 0;padding-left:18px}
+
+.brand .out{margin-left:auto;align-self:center;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600}
+/* demo login (Claude 안 시연용) */
+.login{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;padding:calc(40px + env(safe-area-inset-top,0px)) var(--gr) calc(24px + env(safe-area-inset-bottom,0px)) var(--gl)}
+.login-in{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.login h1{font-family:var(--font-display);font-weight:400;font-size:44px;line-height:1.05;margin:0}
+.login h1 span{color:var(--accent)}
+.login .lead{margin:0;color:var(--muted)}
+.sso{border:0;border-radius:14px;padding:14px 16px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:16px}
+.fine{font-size:12px;color:var(--muted);margin:0}
+/* programs & notices */
+.src-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.src{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:2px;text-align:left;min-width:0}
+.src strong{font-size:15px}
+.src strong::after{content:" ›";color:var(--accent);font-weight:400}
+.src span{font-size:12.5px;color:var(--muted)}
+.src .n{color:var(--accent);font-weight:600;font-size:12px;margin-top:2px}
+.back{border:0;background:none;padding:2px 0;color:var(--accent);font-weight:600}
+.notice{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.notice .top{display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+.notice h3{font-size:15px;margin:0;line-height:1.4}
+.notice p{margin:0;color:var(--muted);font-size:13.5px}
+.meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip{text-decoration:none;color:inherit}
+.bus-now{margin:0;font-size:15px;font-weight:600}
+.bus-now small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.toggle{display:flex;align-items:center;gap:6px;font-size:13.5px}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+
+/* chat */
+.msg{display:flex;flex-direction:column;gap:6px;max-width:88%;min-width:0}
+.msg.me{align-self:flex-end}
+.bubble{padding:9px 13px;border-radius:16px;white-space:pre-wrap;word-break:break-word}
+.me .bubble{background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.bot .bubble{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.bot .bubble.thinking{color:var(--muted)}
+.refs{display:flex;flex-wrap:wrap;gap:6px}
+.ref{font-size:12.5px;text-decoration:none;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:3px 8px}
+.err{color:var(--err);font-size:12.5px}
+.field{display:flex;gap:8px;flex-wrap:wrap}
+.field input,.field select{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+#thread{display:flex;flex-direction:column;gap:12px}
+.composer{background:var(--surface);border-top:1px solid var(--line);padding:10px var(--gr) calc(10px + env(safe-area-inset-bottom,0px)) var(--gl)}
+.composer form{max-width:720px;margin:0 auto;display:flex;gap:8px}
+.composer input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.composer button{border:0;border-radius:12px;padding:0 16px;background:var(--accent);color:var(--accent-ink);font-weight:600}
+.composer button.stop{background:var(--done-soft);color:var(--ink)}
+@media (max-width:360px){.apps,.src-links{gap:8px}.app{padding:10px 12px}}
+@media (prefers-reduced-motion:reduce){.app:active{transform:none}}
+</style>
+</head>
+<body>
+<section class="login" id="login" aria-labelledby="login-h" hidden>
+  <div class="login-in">
+    <h1 id="login-h">All for<br><span>YU</span></h1>
+    <p class="lead">출결, 출입, 러닝엑스, 학사, 학교 소식을 한 곳에서. 학교 계정 한 번 로그인으로 연결되는 통합 앱 시제품이에요.</p>
+    <button class="sso" type="button" id="sso-btn">영남대 통합 로그인으로 계속</button>
+    <p class="fine">시연용 화면이에요. 학번이나 비밀번호를 받거나 저장하지 않아요. 실제 앱에서는 학교 로그인 화면(SSO)으로 넘어갔다가 돌아오고, 비밀번호는 학교만 확인해요.</p>
+  </div>
+</section>
+
+<header>
+  <div class="brand"><h1>All for <b>YU</b></h1><button class="out" type="button" id="out-btn" hidden>로그아웃</button></div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-view="home">홈</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="chat">대화</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="prog">프로그램</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="news">공지</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="campus">캠퍼스</button>
+  </nav>
+</header>
+
+<main id="main">
+  <!-- 홈: 앱 4개 + 내 일정 -->
+  <section class="view" id="view-home">
+    <div class="apps">
+      <a class="app" data-sc="%EC%8A%A4%EB%A7%88%ED%8A%B8%EC%B6%9C%EA%B2%B0" href="https://apps.apple.com/kr/app/id6673893023" target="_blank" rel="noopener"><strong>스마트출결</strong><span>출석 체크·출결 현황</span><em>앱 열기 ↗</em></a>
+      <a class="app" data-sc="%EC%B6%9C%EC%9E%85%EC%A6%9D" href="https://apps.apple.com/kr/app/id498173110" target="_blank" rel="noopener"><strong>출입증</strong><span>건물 출입 (클리커)</span><em>앱 열기 ↗</em></a>
+      <a class="app" data-sc="%EB%9F%AC%EB%8B%9D%EC%97%91%EC%8A%A4" href="https://apps.apple.com/kr/app/id6621208397" target="_blank" rel="noopener"><strong>러닝엑스</strong><span>강의·과제·강의 공지</span><em>앱 열기 ↗</em></a>
+      <a class="app" href="https://portal.yu.ac.kr/sso/login.jsp?type=easy" target="_blank" rel="noopener"><strong>학생정보시스템</strong><span>수강·성적·학적</span><em>웹으로 열기 ↗</em></a>
+    </div>
+    <p class="fallback" id="fallback">앱스토어를 거쳐 열려요(«열기»). <a href="https://lms.yu.ac.kr/" target="_blank" rel="noopener">러닝엑스 웹</a></p>
+
+    <section class="panel" aria-labelledby="my-h">
+      <div class="ph">
+        <h2 id="my-h">내 일정</h2>
+        <div style="display:flex;gap:6px">
+          <button class="small-btn" type="button" id="lx-clear" hidden>지우기</button>
+          <button class="small-btn primary" type="button" id="lx-pick">불러오기</button>
+        </div>
+        <input type="file" id="lx-file" accept=".ics,text/calendar" hidden>
+      </div>
+      <div class="rows" id="lx-list"></div>
+      <button class="small-btn" type="button" id="lx-more" hidden></button>
+      <details class="how"><summary>러닝엑스 일정 불러오는 법</summary>
+        <ol>
+          <li>러닝엑스 웹 → 캘린더 → «캘린더 피드» 주소로 .ics 파일 받기 (PC가 편해요)</li>
+          <li>위 «불러오기»로 그 파일 선택. 일정은 이 기기에만 저장돼요.</li>
+          <li>새 과제가 생기면 파일을 다시 받아 불러오세요. 피드 주소는 공유 금지.</li>
+        </ol>
+      </details>
+    </section>
+  </section>
+
+  <!-- 대화: AI 고르기 -->
+  <section class="view" id="view-chat" hidden>
+    <section class="panel" id="ai-panel">
+      <div class="ph"><h2>AI 설정</h2><span class="note" id="ai-state"></span></div>
+      <div class="field"><select id="prov" aria-label="AI 고르기"></select></div>
+      <p class="note" id="prov-note" style="margin:0"></p>
+      <div class="field" id="key-row">
+        <input id="key-input" type="password" placeholder="API 키 붙여넣기" autocomplete="off" aria-label="API 키">
+        <button class="small-btn primary" type="button" id="key-save">등록</button>
+      </div>
+      <div class="field" id="model-row" hidden>
+        <select id="model-select" aria-label="모델"></select>
+        <button class="small-btn" type="button" id="key-del">키 삭제</button>
+      </div>
+      <p class="err" id="key-err" hidden></p>
+      <p class="note" style="margin:0">키는 이 기기에만 저장되고, 학교 공지와 질문만 고른 AI 회사로 보내요. 내 일정과 개인정보는 보내지 않아요.</p>
+    </section>
+    <div class="chips" id="suggest"></div>
+    <div id="thread"></div>
+  </section>
+
+  <!-- 프로그램: 나에게 맞는 기회 + 유토피아·어울림 -->
+  <section class="view" id="view-prog" hidden>
+    <div id="prog-home" class="view" style="margin:0">
+      <section class="panel" aria-labelledby="fit-h">
+        <div class="ph"><h2 id="fit-h">나에게 맞는 기회</h2><span class="note">신청 가능한 것만</span></div>
+        <div class="chips" id="interests"></div>
+        <div class="rows" id="fit-list"></div>
+      </section>
+      <div class="src-links">
+        <button class="src" type="button" data-src="유토피아"><strong>유토피아</strong><span>비교과 프로그램</span><span class="n" id="n-yt"></span></button>
+        <button class="src" type="button" data-src="어울림"><strong>어울림</strong><span>진로·취업·채용</span><span class="n" id="n-au"></span></button>
+      </div>
+      <a class="small-btn" style="align-self:flex-start" href="https://www.yu.ac.kr/" target="_blank" rel="noopener">영남대학교 홈페이지 ↗</a>
+    </div>
+    <div id="prog-detail" class="view" style="margin:0" hidden>
+      <div class="ph"><button class="back" type="button" id="prog-back">‹ 프로그램</button><a class="small-btn" id="prog-site" href="#" target="_blank" rel="noopener">바로가기 ↗</a></div>
+      <h2 id="prog-title" style="font-family:var(--font-display);font-weight:400;font-size:24px;margin:0"></h2>
+      <label class="toggle"><input type="checkbox" id="prog-open" checked> 신청 가능한 것만</label>
+      <p class="note" id="prog-count" style="margin:0"></p>
+      <div id="progs" class="view" style="margin:0;gap:10px"></div>
+    </div>
+  </section>
+
+  <!-- 공지: 이번 주 새 소식 + 공지 목록 -->
+  <section class="view" id="view-news" hidden>
+    <section class="panel" aria-labelledby="new-h">
+      <div class="ph"><h2 id="new-h">이번 주 새 소식</h2><span class="note">홈페이지·유토피아·어울림</span></div>
+      <div class="rows" id="new-list"></div>
+    </section>
+    <div class="chips" id="filter"></div>
+    <div id="notices" class="view" style="margin:0;gap:10px"></div>
+  </section>
+  <!-- 캠퍼스: 순환버스 · 학식 · 학사 일정 -->
+  <section class="view" id="view-campus" hidden>
+    <section class="panel" aria-labelledby="bus-h">
+      <div class="ph"><h2 id="bus-h">교내 순환버스</h2><span class="pill" id="bus-pill"></span></div>
+      <p class="bus-now" id="bus-now"></p>
+      <div class="rows">
+        <div class="row"><strong>08:00 ~ 08:50</strong><span class="note">10분 간격</span></div>
+        <div class="row"><strong>09:00 ~ 11:40</strong><span class="note">20분 간격</span></div>
+        <div class="row"><strong>점심시간</strong><span class="note">운행 없음</span></div>
+        <div class="row"><strong>13:00 ~ 17:40</strong><span class="note">20분 간격</span></div>
+      </div>
+      <details class="how"><summary>노선·정류장</summary>
+        <ol>
+          <li>1노선 인문계(11곳): 국제교류센터, 중앙도서관, 음악관 옆 테니스장 주차장, 인문관, 제1과학관, 천마관, 사범대학 등</li>
+          <li>2노선 자연계(12곳): 노천강당, 제1·제2과학관, 생명응용과학대학, 기계관, 천마아트센터, 약학관, 생활과학대학, 중앙도서관 등</li>
+          <li>순환지점: 서문 인조잔디축구장 앞 (5분 정차). 요일별 운행은 공지에 따로 없어요. 문의 학생지원팀 053-810-1138</li>
+        </ol>
+      </details>
+      <a class="small-btn" style="align-self:flex-start" href="https://www.yu.ac.kr/main/intro/yu-news.do?mode=view&amp;articleNo=228839316" target="_blank" rel="noopener">순환버스 공지 원문 ↗</a>
+    </section>
+    <section class="panel" aria-labelledby="meal-h">
+      <div class="ph"><h2 id="meal-h">학식</h2><span class="note">식단표는 PDF로 올라와요</span></div>
+      <a class="row" id="diet-link" href="https://www.yu.ac.kr/yucf/notice/diet.do" target="_blank" rel="noopener"><strong id="diet-title">이번 주 식단표</strong><span class="pill open">보기 ↗</span><small id="diet-sub">학생회관·자연계·인문계 교직원식당</small></a>
+      <div class="chips">
+        <a class="chip" href="https://www.yu.ac.kr/yucf/cafeteria/student-center.do" target="_blank" rel="noopener">학생회관 식당</a>
+        <a class="chip" href="https://www.yu.ac.kr/yucf/cafeteria/natural.do" target="_blank" rel="noopener">자연계 학생식당</a>
+        <a class="chip" href="https://www.yu.ac.kr/yucf/cafeteria/humanities-faculty.do" target="_blank" rel="noopener">인문계 교직원식당</a>
+        <a class="chip" href="https://www.yu.ac.kr/yucf/cafeteria/cheonma-art.do" target="_blank" rel="noopener">천마아트센터 식당</a>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="cal-h">
+      <div class="ph"><h2 id="cal-h">학사 일정</h2><a class="small-btn" href="https://www.yu.ac.kr/main/bachelor/calendar.do" target="_blank" rel="noopener">학교 학사일정 ↗</a></div>
+      <div class="rows" id="cal-list"></div>
+      <p class="note" style="margin:0">기말고사·종강 같은 전체 일정은 학교 학사일정 페이지에서 확인하세요.</p>
+    </section>
+  </section>
+</main>
+
+<div class="composer" id="composer" hidden>
+  <form id="ask-form" autocomplete="off">
+    <input id="ask-input" placeholder="예: 상경계 취업 프로그램 알려줘" aria-label="질문 입력" maxlength="300">
+    <button type="submit" id="ask-btn">보내기</button>
+  </form>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+const NOW = new Date();
+let DATA_DATE = "11월 12일";
+const TODAY_LABEL = new Intl.DateTimeFormat("ko-KR", {timeZone:"Asia/Seoul", year:"numeric", month:"long", day:"numeric", weekday:"short"}).format(NOW);
+
+// 영남대 홈페이지·사업단·유토피아·어울림에서 2026-11-11에 모은 공지 요약
+const NOTICES = [
+  {id:1, cat:"비교과", title:"[글로벌공생HUSS] 특강 「한류와 한국어 교육」 참가자 모집", posted:"2026-10-21", deadline:"2026-11-11 17:00",
+   body:"특강 일시 2026년 11월 18일(수) 13:30~15:20, 장소는 추후 안내. 강사는 김덕호 경북대 명예교수. 신청은 구글폼으로 11월 11일(수) 17시까지. 대상은 HUSS 사업 참여학과 재학생(화학공학부 에너지화공전공, 글로벌교육학부, 경영학과, 무역학부, 사회학과 및 부·복전공자), 휴학생·대학원생 불가. 문의 글로벌공생HUSS사업단 053-810-4464.",
+   url:"https://www.yu.ac.kr/globalhuss/", source:"글로벌공생HUSS사업단"},
+  {id:2, cat:"비교과", title:"2026 HUSS 공동 학술포스터 발표회", posted:"2026-09-30", deadline:"2026-10-11",
+   body:"발표일 2026년 11월 27일(금) 13:00~17:00, 인문대 1층 강당, 팀당 약 20분 발표. 인문사회융합인재양성 참여학과 학부 재학생 대상, 1인 또는 2인 팀. 참가 선발 결과는 10월 12일 발표(신청 기간 종료). 혜택: 팀당 장학금 20만원, 사업단 마일리지. 문의 053-810-4464, globalhuss@yu.ac.kr.",
+   url:"https://www.yu.ac.kr/globalhuss/", source:"글로벌공생HUSS사업단"},
+  {id:3, cat:"행사", title:"2026학년도 YU 전공박람회", posted:"2026-11-06", deadline:"",
+   body:"AI 기반 적성 진단과 학과별 체험으로 전공 선택과 진로 설계를 돕는 행사. 다전공 안내, 취업·진학 상담도 함께 진행. 11월 초 개최(언론 보도 기준).",
+   url:"https://kbmaeil.com/article/20261106500129", source:"경북매일 보도"},
+  {id:4, cat:"취업", title:"2026 하반기 영남대학교 취업박람회 & 채용현장면접", posted:"2026-09-07", deadline:"2026-09-11",
+   body:"9월 8일~11일 개최. 대기업·공기업·지역 중견기업 등 80여 개 기업·기관 참여, 기업별 채용상담과 현장채용면접. 9~10일 현장실습 매칭박람회, 11일 정문 천마로 일대에서 재직 동문 70여 명이 멘토로 참여한 '취업선배 암묵지'. 행사 종료.",
+   url:"https://www.yu.ac.kr/pr/yunews/yu-news-room.do", source:"영남대 뉴스룸"},
+  {id:5, cat:"학사", title:"2026학년도 2학기 미등록자 구제휴학 신청 및 접수 안내", posted:"2026-09-02", deadline:"",
+   body:"2학기 등록을 하지 못한 학생 대상 구제휴학 신청 안내. 세부 기간과 방법은 원문 공지 확인 필요.",
+   url:"https://www.yu.ac.kr/econ/index.do", source:"학부 알림판"},
+  {id:6, cat:"비교과", title:"[교육혁신센터] 2026학년도 Y형 폴리매스 학생성공 비교과 가이드북 배포", posted:"2026-09-07", deadline:"",
+   body:"교육혁신센터가 2026학년도 비교과 프로그램을 한눈에 볼 수 있는 가이드북을 배포. 비교과 프로그램 전체 목록이 필요할 때 참고.",
+   url:"https://www.yu.ac.kr/econ/index.do", source:"학부 알림판"},
+  {id:7, cat:"학사", title:"2026학년도 교직과정 이수예정자 추가 선발 신청 안내", posted:"2026-09-01", deadline:"",
+   body:"교직과정 이수예정자 추가 선발 신청 안내. 대상·기간은 원문 공지 확인 필요.",
+   url:"https://www.yu.ac.kr/econ/index.do", source:"학부 알림판"},
+  {id:8, cat:"취업", title:"2026년 하반기 교내 계약직원 채용(인재풀) 안내", posted:"2026-06-11", deadline:"",
+   body:"교내 계약직원 채용에 활용할 인재풀 운영. 인재풀 등록자는 채용 발생 시 해당 부서에 추천되고, 불합격해도 이후 채용에 계속 추천. 제출 서류는 지정 양식의 입사지원서(이력서+자기소개서) 1부, 인재풀 신청 링크와 단과대학 추천 구글폼으로 지원.",
+   url:"https://www.yu.ac.kr/gl/", source:"글로벌인재대학"},
+  {id:9, cat:"학사", title:"2026학년도 2학기 휴학·복학 신청 및 접수 안내", posted:"2026-06-12", deadline:"2026-08-31",
+   body:"정규 접수 7월 1일~3일. 추가 접수: 휴학 8월 3일~31일, 복학 7월 20일~22일(1차)·8월 3일~5일(2차), 모두 10:00~16:00. 경로: 학사 > 학적관리 > 변동관리 > 휴(복)학신청. 군 휴·복학은 병적 확인 서류를 직접 첨부해야 함. 2학기 접수는 종료.",
+   url:"https://www.yu.ac.kr/gl/", source:"글로벌인재대학"},
+  {id:10, cat:"공모전", title:"현대자동차그룹이 함께하는 HINT 교육생 모집", posted:"2026-10-08", deadline:"2026-10-11",
+   body:"현대자동차그룹 연계 교육 프로그램 교육생 모집, 10월 11일 마감. 세부 내용은 원문 공지 확인.",
+   url:"https://www.yu.ac.kr/automotive/community/education-program-notice.do", source:"미래자동차 교육프로그램 게시판"},
+  {id:11, cat:"공모전", title:"[대일플] 2026 Build Together AI 아이디어 해커톤 모집", posted:"2026-10-07", deadline:"",
+   body:"AI 아이디어 해커톤 참가자 모집 안내. 일정·자격은 원문 공지 확인.",
+   url:"https://www.yu.ac.kr/automotive/community/education-program-notice.do", source:"미래자동차 교육프로그램 게시판"},
+  {id:12, cat:"생활", title:"외국어교육원 글로벌 라운지 분실물 보관 안내", posted:"2026-06-22", deadline:"",
+   body:"외국어교육원 1층 글로벌 라운지 분실물은 글로벌인재대학 행정실(C02-104호)에서 보관. 매월 1일~말일까지 보관 후 폐기, 매월 분실물 목록을 사진과 함께 공지. 문의 053-810-7805.",
+   url:"https://www.yu.ac.kr/gl/", source:"글로벌인재대학"}
+];
+// 유토피아(비교과)·어울림(진로·취업)에서 2026-11-11 밤에 모은 항목
+const md = s => s.slice(5).replace("-", ".");
+const YT = (id, title, org, from, to, run, quota, pid) => ({id, cat:"비교과", title, posted:from, deadline:to,
+  body:`유토피아 비교과 프로그램. 운영기관 ${org}. 신청기간 ${md(from)}~${md(to)}. 운영 ${run}. 신청 현황 ${quota}(11월 11일 밤 기준). 신청은 유토피아에서.`,
+  url:`https://yutopia.yu.ac.kr/ko/program/all/view/${pid}`, source:"유토피아"});
+const AU = (id, title, from, to, run, quota, pid) => ({id, cat:"취업", title, posted:from, deadline:to,
+  body:`어울림 진로·취업 프로그램. 접수 ${md(from)}~${md(to)}. 교육 ${run}. 신청 현황 ${quota}(11월 11일 밤 기준). 신청은 어울림에서.`,
+  url:`https://join.yu.ac.kr/front_new/?g_page=program&m_page=program01&act=view.new&P_IDX=${pid}`, source:"어울림"});
+const RJ = (id, title, to, idx) => ({id, cat:"채용", title:"[교내추천] " + title, posted:"2026-11-11", deadline:to,
+  body:`어울림 교내 추천채용. ${title}, ${md(to)} 마감. 학교 추천을 거쳐 지원하는 공고라 어울림에서 절차 확인 필요.`,
+  url:`https://join.yu.ac.kr/front_new/?g_page=job&m_page=job02&act=job.comp.view&idx=${idx}`, source:"어울림"});
+const JB = (id, title, from, to, idx) => ({id, cat:"채용", title, posted:from, deadline:to,
+  body:`어울림 기업 채용정보. 접수 ${md(from)}~${md(to)}. 세부 직무는 원문 확인.`,
+  url:`https://join.yu.ac.kr/front_new/?g_page=job&m_page=job01&act=job.comp.view&idx=${idx}`, source:"어울림"});
+NOTICES.push(
+  YT(13,"2026 새마을국제개발 현장학습","RISE사업단","2026-10-28","2026-11-11","11월 20일 09:00~18:00","2명 신청(정원 제한 없음)",21120),
+  YT(14,"[신소재공학부] 인공지능과 신소재공학 명사 토크 콘서트 2차","공과대학","2026-10-19","2026-11-12","11월 13일 14:00~16:00","38/73명",21101),
+  YT(15,"정신건강특강: 뇌과학으로 풀어보는 알코올과 약물 이야기","학생성공처","2026-09-07","2026-11-12","11월 12일 15:00~16:30","88/120명",21032),
+  YT(16,"YUnicorn 3D 프린팅 교육 레슨2(2과정)","RISE사업단","2026-11-07","2026-11-12","11월 16일~20일","21/25명",21130),
+  YT(17,"정신건강특강: 도망쳐도 괜찮아","학생성공처","2026-09-07","2026-11-13","11월 13일 13:30~15:00","24/50명",21033),
+  YT(18,"[재맞고] 산림자원학과 재학생 진로탐색 특강","생명응용과학대학","2026-11-11","2026-11-13","11월 13일 12:00~14:00","승인 필요",21151),
+  YT(19,"[재맞고] 국어교사 진로를 위한 재학생 모의수업","사범대학","2026-11-09","2026-11-13","11월 13일 12:00~16:00","3/100명",21143),
+  YT(20,"2학기 집단상담: 영화치료 집단상담 외 2건","학생성공처","2026-10-01","2026-11-13","11월 9일~23일","9/14명",21047),
+  YT(21,"정신건강특강: 눈치 그만, 이제 나답게","학생성공처","2026-09-07","2026-11-15","11월 18일 15:00~16:30","19/50명",21034),
+  YT(22,"외국인 유학생 상담 프로그램(특강)","학생성공처","2026-10-20","2026-11-15","11월 18일 13:00~15:00","12/30명",21098),
+  YT(23,"외국인 유학생 상담 프로그램(집단상담)","학생성공처","2026-10-20","2026-11-15","11월 20일 14:00~16:00","63/63명, 정원 마감",21097),
+  YT(24,"[재맞고] 통계학과 졸업생 특강(3차시)","자연과학대학","2026-11-05","2026-11-15","11월 16일 16:30~18:00","3/80명",21140),
+  YT(25,"YU PEER 또래상담 활동(멘티)","학생성공처","2026-09-01","2026-11-16","9월 21일~12월 24일","승인 필요",20993),
+  YT(26,"나와 타인의 심리: 성격 유형을 넘어 욕구를 읽는 법","교무처","2026-10-28","2026-11-16","11월 18일 13:30~15:30","38명 신청(정원 제한 없음)",21115),
+  YT(27,"[학습 LTV] AI 시대의 미디어 코드","교무처","2026-11-11","2026-11-16","11월 18일 09:00~23:59","251/400명",20989),
+  YT(28,"[학습법 특강] 대학생활이 쉬워지는 Canva AI 마스터 클래스","교무처","2026-11-04","2026-11-17","11월 19일 10:00~12:00","9/30명",21139),
+  YT(29,"[신소재공학부] 졸업생 초청 특강 및 멘토링","공과대학","2026-11-11","2026-11-18","11월 21일 10:00~12:00","2명 신청",21152),
+  YT(30,"[재맞고] 선배에게 듣는 취업 성공기(역사학과)","인문대학","2026-11-10","2026-11-16","11월 16일 18:00~20:00","1명 신청",21148),
+  YT(31,"제9회 독일유럽 영상포럼: 뮤헨 옥토버페스트","인문대학","2026-10-27","2026-11-25","11월 25일 18:00~19:00","18/20명",21112),
+  YT(32,"글로벌 교육환경 수립을 위한 TA 프로그램","글로벌인재대학","2026-09-10","2026-12-25","9월 14일~12월 25일","승인 필요",21037),
+  YT(33,"천마 비상(飛上) 캠프 멘티 신청","천마학부대학","2026-10-12","2026-10-25","11월 19일~20일","0/45명",21083),
+  AU(34,"[인문·상경·사회] 직무별 온라인 취업선배 멘토링","2026-11-02","2026-11-11","11월 17일","55/130명",2650),
+  AU(35,"[이공계] 직무별 온라인 취업선배 멘토링","2026-11-03","2026-11-12","11월 19일","33/120명",2652),
+  AU(36,"2026 NCS·PSAT 취업 준비 아카데미","2026-11-03","2026-11-13","11월 23일~12월 3일","91/200명",2653),
+  RJ(37,"SNF코리아 신입 공정관리","2026-11-18",64058),
+  RJ(38,"(사)디자인정책연구원 신입 소공인특화센터 운영","2026-11-17",64050),
+  RJ(39,"한성에스앤에이(주) 대구지점 신입 연구소","2026-11-19",64049),
+  RJ(40,"뱅크샐러드금융서비스 신입 채용연계형 인턴","2026-11-23",64039),
+  JB(41,"서울특별시120다산콜재단 채용","2026-11-06","2026-11-16",64060),
+  JB(42,"LB세미콘 채용","2026-11-05","2026-11-18",64057),
+  JB(43,"AP코리아 채용","2026-11-11","2026-11-11",64056),
+  JB(44,"용마로지스 채용","2026-11-11","2026-11-22",64055),
+  {id:45, cat:"장학", title:"2학기 중소기업 취업연계 장학사업(희망사다리Ⅰ유형) 장학생 추천 심사 기준 안내", posted:"2026-10-06", deadline:"",
+   body:"중소기업 취업연계 장학사업(희망사다리 Ⅰ유형) 장학생을 학교가 추천할 때 쓰는 심사 기준 안내. 세부 기준은 원문 확인.",
+   url:"https://join.yu.ac.kr/front_new/index.php?g_page=intro&m_page=intro04&bb_code=701y0pt08329e05&view=read&bvLib=4", source:"어울림"}
+);
+// 경영학과 공지·학사안내·생활 (2026-11-12 수집)
+const BIZ = "https://www.yu.ac.kr/biz/board/notice.do?mode=view&articleNo=";
+const BG = "https://www.yu.ac.kr/main/bachelor/bachelor-guide.do?mode=view&articleNo=";
+NOTICES.push(
+  {id:46, cat:"경영학과", title:"2026-2학기 경영학과 자격증 응시료 지원", posted:"2026-10-01", deadline:"2027-01-15 16:00",
+   body:"경영학과 1전공 재학생 대상, 선착순 30명. 토익 750+, 오픽 IM2+, 토익스피킹 130+, 전산회계·세무 1급, 물류관리사, 사회조사분석사 2급, 유통관리사 2급, 컴활 1급, ADsP, AFPK, 투자자산운용사 등. 1인 연 7만원까지 실제 응시료 지원(부분 합격도 가능). 2026.9.1~2027.1.14 취득분, 신청 10.12~1.15 16시. business@yu.ac.kr로 영수증·합격증 첨부해 메일 신청. 지급은 2월 예정.",
+   url:BIZ+"231893302", source:"경영학과 공지"},
+  {id:47, cat:"경영학과", title:"[AI앵커대학사업단] 동계 AI 리터러시 청년 튜터 양성 프로그램", posted:"2026-11-02", deadline:"2026-11-06 15:00",
+   body:"2026-2학기 재학생, 15학점 이상 이수자, 22명 선발(AI 관련 과목 수강자 우대). 튜터 교육 2027.1.6~12, 우즈베키스탄 해외봉사 1.18~2.3(항공·숙박 지원, 해외자원봉사 1학점 인정). 유토피아로 신청, 서류·면접 선발. 문의 AI가치확산팀 053-810-4451.",
+   url:BIZ+"232345694", source:"경영학과 공지"},
+  {id:48, cat:"경영학과", title:"2026 경영대학 YUBUS '금의환교' 페스티벌", posted:"2026-10-30", deadline:"2026-11-07",
+   body:"11월 7일(토) 13:00~21:00 상경관. 영남대 학생 누구나 참여, 졸업 선배들의 직무 이야기(잡썰). 문의 경영대학 행정실 053-810-3213.",
+   url:BIZ+"232303406", source:"경영학과 공지"},
+  {id:49, cat:"경영학과", title:"[모집기한 연장] 2026 SW전공 진로설계 캠프 (2~3학년)", posted:"2026-11-02", deadline:"",
+   body:"2~3학년 대상 SW전공 진로설계 캠프 참가자 모집, 모집 기한이 연장됨. 세부 일정은 원문 확인.",
+   url:BIZ+"232345693", source:"경영학과 공지"},
+  {id:50, cat:"경영학과", title:"2027년 2월 졸업예정자 졸업기준 안내 (졸업시험 정답 추가)", posted:"2026-09-17", deadline:"",
+   body:"2027년 2월 졸업예정 경영학과 학생 대상 졸업기준과 졸업시험 관련 안내. 졸업예정자는 원문 필수 확인.",
+   url:BIZ+"231696077", source:"경영학과 공지"},
+  {id:51, cat:"경영학과", title:"경영대학 장학사정 기준 안내", posted:"2026-07-07", deadline:"",
+   body:"경영대학 장학금 선발 기준 안내. 세부 기준은 원문 확인.", url:BIZ+"230682834", source:"경영학과 공지"},
+  {id:52, cat:"학사", title:"5년제 학·석사연계과정 예비생 모집 (2026-2학기)", posted:"", from:"2026-11-30", deadline:"2027-01-15",
+   body:"5~6학기 이수자 중 졸업학점 기준을 채운 학생 대상. 대학원 과목을 미리 들어 학·석사를 1년 단축. 신청 11.30~1.15, 신청서를 수업학적팀에 직접 제출, 결과 2.2 개별 통보. 혜택: 졸업논문·종합시험 면제, 대학원 입학금 면제, 입학 확정 시 장학금 100만원 등. 문의 대학원학사팀 053-810-3771.",
+   url:BG+"232388109", source:"학사안내"},
+  {id:53, cat:"학사", title:"겨울 계절학기 타대학 학점교류 신청 (고려대·연세대 등)", posted:"2026-11-05", deadline:"2026-11-11 17:00",
+   body:"다른 대학 겨울 계절학기 수강(학점교류) 신청 안내. 마감: 고려대·연세대 11.11 17시, 가톨릭대 11.10, 대구한의대 11.9, 제주대 11.5, 경북대 11.4, 부산대 11.3, 숙명여대 11.2.",
+   url:"https://www.yu.ac.kr/main/bachelor/bachelor-guide.do", source:"학사안내"},
+  {id:54, cat:"생활", title:"2026학년도 교내 순환버스 운행 안내", posted:"2026-02-26", deadline:"",
+   body:"노란 25인승. 08:00~08:50 10분 간격, 09:00~11:40 20분 간격, 점심 운행 없음, 13:00~17:40 20분 간격. 1노선(인문계 11곳: 국제교류센터·중앙도서관·인문관·천마관·사범대 등), 2노선(자연계 12곳: 노천강당·과학관·기계관·천마아트센터·약학관 등). 서문 인조잔디축구장 앞이 순환지점(5분 정차). 문의 학생지원팀 053-810-1138.",
+   url:"https://www.yu.ac.kr/main/intro/yu-news.do?mode=view&articleNo=228839316", source:"영대소식"},
+  {id:55, cat:"생활", title:"학생 식당 메뉴 안내 (11/9~11/13)", posted:"2026-11-09", deadline:"",
+   body:"학생회관식당·자연계식당·인문계교직원식당의 주간 식단표(PDF 첨부). 매주 월요일쯤 새 식단이 올라옴.",
+   url:"https://www.yu.ac.kr/yucf/notice/diet.do?mode=view&articleNo=232444436", source:"편의시설"}
+);
+
+
+function status(n){
+  if(n.from && new Date(n.from + "T00:00:00") > new Date()) return {cls:"info", label:"예정"};
+  if(!n.deadline) return {cls:"info", label:"안내"};
+  const d = new Date(n.deadline.length <= 10 ? n.deadline + "T23:59:59" : n.deadline.replace(" ","T") + ":00");
+  const now = new Date();
+  if(d < now) return {cls:"closed", label:"마감"};
+  const day = x => Math.floor((x.getTime() - x.getTimezoneOffset()*60000) / 86400000);
+  const days = day(d) - day(now);
+  if(days <= 0) return {cls:"soon", label:"오늘 마감"};
+  return days <= 3 ? {cls:"soon", label:`D-${days}`} : {cls:"open", label:"신청 중"};
+}
+const isProg = n => (n.source === "유토피아" || n.source === "어울림") && n.cat !== "장학";
+function card(n){
+  const s = status(n);
+  return `<article class="notice"><div class="top"><h3>${esc(n.title)}</h3><span class="pill ${s.cls}">${s.label}</span></div>
+    <p>${esc(n.body)}</p>
+    <div class="meta"><span>${esc(n.cat)}</span>${n.posted ? `<span>게시 ${n.posted.replaceAll("-",".")}</span>` : ""}${n.from ? `<span>시작 ${n.from.replaceAll("-",".")}</span>` : ""}${n.deadline ? `<span>마감 ${esc(n.deadline.replaceAll("-","."))}</span>` : ""}<a href="${esc(n.url)}" target="_blank" rel="noopener">원문: ${esc(n.source)}</a></div></article>`;
+}
+function rowItem(n){
+  const s = status(n);
+  return `<a class="row" href="${esc(n.url)}" target="_blank" rel="noopener"><strong>${esc(n.title)}</strong><span class="pill ${s.cls}">${s.label}</span><small>${esc(n.source)}${n.deadline ? " · 마감 " + esc(n.deadline.slice(5,10).replace("-", ".")) : ""}</small></a>`;
+}
+
+/* 실행 환경: Claude 안(시연용) vs 내 웹주소(개인용) */
+const IN_CLAUDE = !!(window.claude && window.claude.use);
+if(IN_CLAUDE){
+  $("#login").hidden = false; $("#out-btn").hidden = false;
+  $("#sso-btn").addEventListener("click", () => { $("#login").hidden = true; });
+  $("#out-btn").addEventListener("click", () => { if(ctl) ctl.abort(); $("#login").hidden = false; $("#login").scrollTop = 0; });
+} else {
+  // 단축어로 앱 바로 열기 (단축어 이름: 스마트출결 / 출입증 / 러닝엑스)
+  document.querySelectorAll("[data-sc]").forEach(a => {
+    a.href = "shortcuts://run-shortcut?name=" + a.dataset.sc; a.removeAttribute("target");
+    a.querySelector("em").textContent = "바로 열기";
+  });
+  $("#fallback").innerHTML = `안 열리면 앱스토어: <a href="https://apps.apple.com/kr/app/id6673893023" target="_blank" rel="noopener">출결</a> · <a href="https://apps.apple.com/kr/app/id498173110" target="_blank" rel="noopener">출입증</a> · <a href="https://apps.apple.com/kr/app/id6621208397" target="_blank" rel="noopener">러닝엑스</a> · <a href="https://lms.yu.ac.kr/" target="_blank" rel="noopener">러닝엑스 웹</a>`;
+}
+
+/* tabs */
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x === b));
+  ["home","chat","prog","news","campus"].forEach(v => $("#view-" + v).hidden = v !== b.dataset.view);
+  $("#composer").hidden = b.dataset.view !== "chat";
+  if(b.dataset.view === "prog") showProgHome();
+  $("#main").scrollTop = 0;
+}));
+
+/* 홈: 내 일정 (러닝엑스 .ics) */
+let lxEvents = store.get("yu-lx-events", []);
+let lxAll = false;
+const fmtKST = new Intl.DateTimeFormat("ko-KR", {timeZone:"Asia/Seoul", month:"numeric", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit", hour12:false});
+const fmtKSTDay = new Intl.DateTimeFormat("ko-KR", {timeZone:"Asia/Seoul", month:"numeric", day:"numeric", weekday:"short"});
+function parseDT(v){
+  const m = v.trim().match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/);
+  if(!m) return null;
+  const [, y, mo, d, h, mi, s, z] = m;
+  if(h === undefined) return {t: Date.UTC(+y, +mo-1, +d, 23-9, 59), allDay:true};
+  if(z) return {t: Date.UTC(+y, +mo-1, +d, +h, +mi, +(s||0)), allDay:false};
+  return {t: Date.UTC(+y, +mo-1, +d, +h-9, +mi, +(s||0)), allDay:false};
+}
+function parseICS(text){
+  const lines = text.replace(/\r\n?/g, "\n").replace(/\n[ \t]/g, "").split("\n");
+  const un = v => v.replace(/\\n/gi, " ").replace(/\\([,;\\])/g, "$1");
+  const out = []; let cur = null;
+  for(const line of lines){
+    if(line === "BEGIN:VEVENT"){ cur = {}; continue; }
+    if(line === "END:VEVENT"){ if(cur && cur.title && cur.when) out.push(cur); cur = null; continue; }
+    if(!cur) continue;
+    const i = line.indexOf(":"); if(i < 0) continue;
+    const name = line.slice(0, i).split(";")[0].toUpperCase(), val = line.slice(i+1);
+    if(name === "SUMMARY") cur.title = un(val).slice(0, 160);
+    else if(name === "DTSTART" && !cur.when) cur.when = parseDT(val);
+    else if(name === "URL" && /^https?:\/\//i.test(val.trim())) cur.url = val.trim();
+  }
+  return out.filter(e => e.when).map(e => ({title:e.title, t:e.when.t, allDay:e.when.allDay, url:e.url || ""}));
+}
+const upcoming = limit => lxEvents.filter(e => e.t >= Date.now() - 3600000).sort((a,b) => a.t - b.t).slice(0, limit);
+const whenLabel = e => e.allDay ? fmtKSTDay.format(e.t) + " (하루 종일)" : fmtKST.format(e.t);
+function dday(e){
+  const day = ms => Math.floor((ms + 9*3600000) / 86400000);
+  const n = day(e.t) - day(Date.now());
+  if(n <= 0) return {cls:"soon", label:"오늘"};
+  return {cls: n <= 2 ? "soon" : "open", label:"D-" + n};
+}
+function renderLX(){
+  const all = upcoming(500), list = lxAll ? all : all.slice(0, 4);
+  $("#lx-clear").hidden = !lxEvents.length;
+  $("#lx-more").hidden = all.length <= 4;
+  $("#lx-more").textContent = lxAll ? "접기" : `${all.length - 4}개 더 보기`;
+  if(!lxEvents.length){ $("#lx-list").innerHTML = `<div class="empty">러닝엑스 캘린더 파일을 불러오면 과제·퀴즈 마감이 날짜순으로 보여요.</div>`; return; }
+  if(!list.length){ $("#lx-list").innerHTML = `<div class="empty">다가오는 마감이 없어요.</div>`; return; }
+  $("#lx-list").innerHTML = list.map(e => { const d = dday(e); const t = `<strong>${esc(e.title)}</strong>`;
+    const inner = `${t}<span class="pill ${d.cls}">${d.label}</span><small>${esc(whenLabel(e))}</small>`;
+    return e.url ? `<a class="row" href="${esc(e.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="row">${inner}</div>`; }).join("");
+}
+$("#lx-pick").addEventListener("click", () => $("#lx-file").click());
+$("#lx-file").addEventListener("change", async e => {
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  const evs = parseICS(await f.text()); e.target.value = "";
+  if(!evs.length){ $("#lx-list").innerHTML = `<div class="empty">일정을 읽지 못했어요. 러닝엑스 캘린더 피드에서 받은 .ics 파일인지 확인해 주세요.</div>`; return; }
+  lxEvents = evs; store.set("yu-lx-events", lxEvents); lxAll = false; renderLX();
+});
+$("#lx-clear").addEventListener("click", () => { lxEvents = []; store.del("yu-lx-events"); renderLX(); });
+$("#lx-more").addEventListener("click", () => { lxAll = !lxAll; renderLX(); });
+renderLX();
+
+/* 프로그램 */
+const INTERESTS = {
+  "경영·상경": n => n.cat === "경영학과" || /경영|상경|무역/.test(n.title + n.body),
+  "취업": n => n.cat === "취업" || n.cat === "채용" || /취업|채용|멘토링|NCS/.test(n.title),
+  "공모전": n => n.cat === "공모전" || /공모전|해커톤|경진대회|발표회/.test(n.title),
+  "비교과": n => n.cat === "비교과",
+  "진로": n => /진로|선배|멘토/.test(n.title),
+  "AI·디지털": n => /AI|3D|Canva|디지털|미디어/.test(n.title),
+  "장학": n => /장학/.test(n.title + n.body)
+};
+let picked = store.get("yu-interests", ["경영·상경", "취업"]).filter(k => INTERESTS[k]);
+function renderFit(){
+  $("#interests").innerHTML = Object.keys(INTERESTS).map(k => `<button class="chip" type="button" aria-pressed="${picked.includes(k)}" data-k="${k}">${k}</button>`).join("");
+  const fits = NOTICES.filter(n => n.deadline && status(n).cls !== "closed").filter(n => picked.some(k => INTERESTS[k](n)))
+    .sort((a,b) => a.deadline.localeCompare(b.deadline)).slice(0, 6);
+  $("#fit-list").innerHTML = !picked.length ? `<div class="empty">관심사를 고르면 맞는 활동을 마감 빠른 순으로 보여줘요.</div>`
+    : fits.length ? fits.map(rowItem).join("") : `<div class="empty">지금 신청 가능한 맞는 활동이 없어요.</div>`;
+}
+$("#interests").addEventListener("click", e => {
+  const c = e.target.closest("[data-k]"); if(!c) return;
+  const k = c.dataset.k; picked = picked.includes(k) ? picked.filter(x => x !== k) : [...picked, k];
+  store.set("yu-interests", picked); renderFit();
+});
+renderFit();
+const SITES = {"유토피아":"https://yutopia.yu.ac.kr/", "어울림":"https://join.yu.ac.kr/front_new/"};
+const TITLES = {"유토피아":"유토피아 비교과 프로그램", "어울림":"어울림 진로·취업"};
+let progSrc = null;
+const openCount = src => NOTICES.filter(isProg).filter(n => n.source === src && status(n).cls !== "closed").length;
+function renderCounts(){
+  $("#n-yt").textContent = `신청 가능 ${openCount("유토피아")}건`;
+  $("#n-au").textContent = `신청 가능 ${openCount("어울림")}건`;
+}
+renderCounts();
+function showProgHome(){ progSrc = null; $("#prog-home").hidden = false; $("#prog-detail").hidden = true; }
+function openProg(src){
+  progSrc = src; $("#prog-home").hidden = true; $("#prog-detail").hidden = false;
+  $("#prog-title").textContent = TITLES[src]; $("#prog-site").href = SITES[src]; $("#prog-site").textContent = src + " 바로가기 ↗";
+  renderProg(); $("#main").scrollTop = 0;
+}
+function renderProg(){
+  if(!progSrc) return;
+  const onlyOpen = $("#prog-open").checked;
+  const items = NOTICES.filter(isProg).filter(n => n.source === progSrc).filter(n => !onlyOpen || status(n).cls !== "closed")
+    .sort((a,b) => (a.deadline || "9999").localeCompare(b.deadline || "9999"));
+  $("#prog-count").textContent = `${items.length}건 · 마감 빠른 순 · 신청 현황은 ${DATA_DATE} 기준`;
+  $("#progs").innerHTML = items.length ? items.map(card).join("") : `<div class="empty">조건에 맞는 프로그램이 없어요.</div>`;
+}
+document.querySelectorAll("[data-src]").forEach(b => b.addEventListener("click", () => openProg(b.dataset.src)));
+$("#prog-back").addEventListener("click", showProgHome);
+$("#prog-open").addEventListener("change", renderProg);
+
+/* 공지 */
+function renderNew(){
+  const weekAgo = new Date(Date.now() - 7*86400000).toLocaleDateString("sv-SE", {timeZone:"Asia/Seoul"});
+  const fresh = NOTICES.filter(n => n.posted >= weekAgo).sort((a,b) => b.posted.localeCompare(a.posted)).slice(0, 6);
+  $("#new-list").innerHTML = fresh.length ? fresh.map(rowItem).join("") : `<div class="empty">최근 7일 사이 새로 올라온 소식이 없어요.</div>`;
+}
+renderNew();
+const CATS = ["전체", ...new Set(NOTICES.filter(n => !isProg(n)).map(n => n.cat))];
+let cat = "전체";
+function renderList(){
+  $("#filter").innerHTML = CATS.map(c => `<button class="chip" type="button" aria-pressed="${c === cat}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+  const items = NOTICES.filter(n => !isProg(n)).filter(n => cat === "전체" || n.cat === cat).sort((a,b) => b.posted.localeCompare(a.posted));
+  $("#notices").innerHTML = items.map(card).join("");
+}
+$("#filter").addEventListener("click", e => { const c = e.target.closest("[data-c]"); if(c){ cat = c.dataset.c; renderList(); }});
+renderList();
+
+/* 대화: AI 고르기 — 내 Claude 계정(Claude 안에서) 또는 각자 등록한 API 키 */
+const PROVIDERS = {
+  claude_app: {label:"Claude · 내 Claude 계정", needsKey:false,
+    note:"지금 쓰는 Claude 계정으로 답해요. 처음 질문할 때 허용 창이 한 번 떠요."},
+  anthropic: {label:"Claude API", keyUrl:"https://platform.claude.com/",
+    note:"Claude 콘솔에서 API 키를 만들어 붙여넣어요. Claude 구독과 별개로 쓴 만큼 요금이 나가요(가벼운 Haiku 모델은 질문당 1원 안팎)."},
+  gemini: {label:"Gemini · 무료 등급 있음", keyUrl:"https://aistudio.google.com/apikey",
+    note:"Google AI Studio에서 무료로 키를 만들 수 있어요. 무료 등급은 질문 내용이 구글 서비스 개선에 쓰일 수 있어요."},
+  openai: {label:"ChatGPT · OpenAI API", keyUrl:"https://platform.openai.com/api-keys",
+    note:"OpenAI 플랫폼에서 키를 만들어요. ChatGPT 구독과 별개로 쓴 만큼 요금이 나가요."},
+  openrouter: {label:"OpenRouter · 무료 모델 있음", keyUrl:"https://openrouter.ai/keys",
+    note:"키 하나로 여러 회사 모델을 써요. 이름에 «free»가 붙은 모델은 무료예요."}
+};
+let ai = store.get("yu-ai", {provider:"", key:"", model:""});
+if(!PROVIDERS[ai.provider] || (ai.provider === "claude_app" && !IN_CLAUDE)) ai = {provider: IN_CLAUDE ? "claude_app" : "gemini", key:"", model:""};
+let sample = null, sampleOff = false;
+const samplePromise = IN_CLAUDE ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
+samplePromise.then(x => { sample = x; if(!x) sampleOff = true; aiUI(); });
+
+const aiReady = () => ai.provider === "claude_app" ? (!!sample && !sampleOff) : !!(ai.key && ai.model) && !IN_CLAUDE;
+function aiUI(){
+  const p = PROVIDERS[ai.provider];
+  $("#prov").innerHTML = Object.entries(PROVIDERS).filter(([k]) => k !== "claude_app" || IN_CLAUDE)
+    .map(([k, v]) => `<option value="${k}" ${k === ai.provider ? "selected" : ""}>${esc(v.label)}</option>`).join("");
+  let note = esc(p.note);
+  if(p.keyUrl) note += ` <a href="${p.keyUrl}" target="_blank" rel="noopener">키 만들러 가기 ↗</a>`;
+  if(p.needsKey !== false && IN_CLAUDE) note = "Claude 안에서는 보안상 다른 AI 회사로 연결이 막혀 있어요. 이 기능은 내 웹주소(GitHub) 버전에서 작동해요. 여기선 «Claude · 내 Claude 계정»을 골라 주세요.";
+  $("#prov-note").innerHTML = note;
+  const keyed = p.needsKey !== false;
+  $("#key-row").hidden = !keyed || !!ai.key || IN_CLAUDE;
+  $("#model-row").hidden = !keyed || !ai.key;
+  $("#ai-state").textContent = aiReady() ? "AI 연결됨" : "키워드 검색 중";
+}
+function saveAI(){ store.set("yu-ai", ai); }
+
+async function apiFetch(url, opts){
+  const r = await fetch(url, opts);
+  const j = await r.json().catch(() => ({}));
+  if(!r.ok) throw {status:r.status, message:(j.error && (j.error.message || j.error)) || ""};
+  return j;
+}
+const OAI_BASE = {openai:"https://api.openai.com/v1/", openrouter:"https://openrouter.ai/api/v1/"};
+async function listModels(){
+  const k = ai.key; let list = [];
+  if(ai.provider === "anthropic"){
+    const j = await apiFetch("https://api.anthropic.com/v1/models?limit=100", {headers:{"x-api-key":k, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true"}});
+    list = (j.data || []).map(m => ({id:m.id, name:m.display_name || m.id}));
+    list.sort((a,b) => (/haiku/i.test(a.id) ? 0 : /sonnet/i.test(a.id) ? 1 : 2) - (/haiku/i.test(b.id) ? 0 : /sonnet/i.test(b.id) ? 1 : 2));
+  } else if(ai.provider === "gemini"){
+    const j = await apiFetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", {headers:{"x-goog-api-key":k}});
+    list = (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent") && /gemini/i.test(m.name) && !/embedding|image|tts|audio|live|veo|imagen/i.test(m.name))
+      .map(m => ({id:m.name, name:m.displayName || m.name.replace("models/","")}));
+    const sc = id => (/flash-lite/i.test(id) ? 0 : /flash/i.test(id) ? 1 : 2) + (/preview|exp/i.test(id) ? 0.5 : 0);
+    list.sort((a,b) => sc(a.id) - sc(b.id) || b.id.localeCompare(a.id));
+  } else if(ai.provider === "openai"){
+    const j = await apiFetch(OAI_BASE.openai + "models", {headers:{"Authorization":"Bearer " + k}});
+    list = (j.data || []).map(m => m.id).filter(id => /^(gpt|o\d|chatgpt)/i.test(id) && !/audio|realtime|image|tts|transcribe|search|embedding|instruct/i.test(id))
+      .map(id => ({id, name:id}));
+    list.sort((a,b) => (/mini|nano/i.test(a.id) ? 0 : 1) - (/mini|nano/i.test(b.id) ? 0 : 1) || b.id.localeCompare(a.id));
+  } else if(ai.provider === "openrouter"){
+    await apiFetch(OAI_BASE.openrouter + "key", {headers:{"Authorization":"Bearer " + k}});
+    const j = await apiFetch(OAI_BASE.openrouter + "models", {});
+    list = (j.data || []).map(m => ({id:m.id, name:(m.name || m.id)}));
+    list.sort((a,b) => (/:free$/.test(a.id) ? 0 : 1) - (/:free$/.test(b.id) ? 0 : 1) || a.name.localeCompare(b.name));
+    list = list.slice(0, 120);
+  }
+  if(!list.length) throw {status:0, message:"no models"};
+  if(!ai.model || !list.some(m => m.id === ai.model)) ai.model = list[0].id;
+  $("#model-select").innerHTML = list.map(m => `<option value="${esc(m.id)}" ${m.id === ai.model ? "selected" : ""}>${esc(m.name)}</option>`).join("");
+}
+$("#prov").addEventListener("change", e => { ai = {provider:e.target.value, key:"", model:""}; saveAI(); $("#key-err").hidden = true; aiUI(); });
+$("#key-save").addEventListener("click", async () => {
+  const k = $("#key-input").value.trim(); if(!k) return;
+  $("#key-err").hidden = true; $("#key-save").disabled = true; $("#key-save").textContent = "확인 중…";
+  ai.key = k;
+  try { await listModels(); saveAI(); $("#key-input").value = ""; aiUI(); }
+  catch(e){ ai.key = ""; ai.model = ""; $("#key-err").hidden = false;
+    $("#key-err").textContent = [400,401,403].includes(e.status) ? "키가 올바르지 않아요. 고른 회사에서 만든 키가 맞는지 확인해 주세요." : "연결에 실패했어요. 인터넷 연결을 확인하고 다시 시도해 주세요."; }
+  finally { $("#key-save").disabled = false; $("#key-save").textContent = "등록"; }
+});
+$("#key-del").addEventListener("click", () => { ai.key = ""; ai.model = ""; saveAI(); aiUI(); });
+$("#model-select").addEventListener("change", e => { ai.model = e.target.value; saveAI(); });
+aiUI();
+if(ai.key && !IN_CLAUDE) listModels().catch(() => { $("#model-select").innerHTML = ai.model ? `<option value="${esc(ai.model)}">${esc(ai.model)}</option>` : ""; });
+
+async function askAI(signal, onText){
+  const msgs = turns.map(t => ({role:t.role, content:t.content}));
+  if(ai.provider === "claude_app"){
+    const { text } = await sample([{role:"user", content:getRules()}, ...msgs], {modelTier:"quick", cache:false, signal, onText});
+    return text;
+  }
+  const k = ai.key; let text = "";
+  if(ai.provider === "anthropic"){
+    const j = await apiFetch("https://api.anthropic.com/v1/messages", {method:"POST", signal,
+      headers:{"Content-Type":"application/json", "x-api-key":k, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true"},
+      body: JSON.stringify({model:ai.model, max_tokens:1024, system:getRules(), messages:msgs})});
+    text = (j.content || []).filter(c => c.type === "text").map(c => c.text).join("");
+  } else if(ai.provider === "gemini"){
+    const j = await apiFetch("https://generativelanguage.googleapis.com/v1beta/" + ai.model + ":generateContent", {method:"POST", signal,
+      headers:{"Content-Type":"application/json", "x-goog-api-key":k},
+      body: JSON.stringify({systemInstruction:{parts:[{text:getRules()}]}, contents: msgs.map(m => ({role: m.role === "assistant" ? "model" : "user", parts:[{text:m.content}]})), generationConfig:{temperature:0.3}})});
+    const parts = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || [];
+    text = parts.filter(p => !p.thought).map(p => p.text || "").join("");
+  } else {
+    const j = await apiFetch(OAI_BASE[ai.provider] + "chat/completions", {method:"POST", signal,
+      headers:{"Content-Type":"application/json", "Authorization":"Bearer " + k},
+      body: JSON.stringify({model:ai.model, messages:[{role:"system", content:getRules()}, ...msgs]})});
+    text = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
+  }
+  text = String(text).trim();
+  if(!text) throw {status:0, message:"empty"};
+  return text;
+}
+function aiErrorCopy(e){
+  const code = e && e.code;
+  if(code){
+    if(["not_granted","sampling_disabled","not_declared","capability_disabled"].includes(code)){ sampleOff = true; aiUI(); }
+    return ({cancelled:"답변을 멈췄어요.", not_granted:"AI 사용이 허용되지 않아 키워드 검색으로 바꿨어요. 다시 질문해 주세요.",
+      sampling_disabled:"이 계정에서는 AI를 쓸 수 없어 키워드 검색으로 바꿨어요.", rate_limited:"질문이 몰려서 잠시 쉬어야 해요. 조금 뒤에 다시 보내 주세요.",
+      refused:"이 질문에는 답할 수 없어요. 학교 공지 관련으로 물어봐 주세요.", session_expired:"로그인이 만료됐어요. 다시 로그인해 주세요."}[code]) || "연결이 잠깐 끊겼어요. 다시 보내 주세요.";
+  }
+  if(e && e.name === "AbortError") return "답변을 멈췄어요.";
+  const s = e && e.status;
+  if(s === 429) return "사용 한도를 넘었어요. 잠시 뒤에 다시 쓰거나 AI 설정에서 다른 모델을 골라 보세요.";
+  if(s === 402) return "크레딧이 부족해요. 무료 모델을 고르거나 크레딧을 충전해 주세요.";
+  if(s === 401 || s === 403) return "API 키에 문제가 있어요. AI 설정에서 키를 다시 등록해 주세요.";
+  if(s === 404 || s === 400) return "이 모델로는 답할 수 없어요. AI 설정에서 다른 모델을 골라 주세요.";
+  return "연결이 잠깐 끊겼어요. 다시 보내 주세요.";
+}
+
+/* 캠퍼스 */
+function renderBus(){
+  const parts = new Intl.DateTimeFormat("en-GB", {timeZone:"Asia/Seoul", hour:"2-digit", minute:"2-digit", hour12:false}).format(new Date()).split(":");
+  const m = (+parts[0]) * 60 + (+parts[1]);
+  const slots = [[480, 530, 10], [540, 700, 20], [780, 1060, 20]];
+  let now = "", sub = "", cls = "closed", label = "운행 안 함";
+  const cur = slots.find(([a, b]) => m >= a && m <= b + 2);
+  if(cur){ now = `지금 ${cur[2]}분 간격으로 운행 중`; sub = `${String(Math.floor(cur[1]/60)).padStart(2,"0")}:${String(cur[1]%60).padStart(2,"0")}까지 이 간격이에요.`; cls = "open"; label = "운행 중"; }
+  else {
+    const next = slots.find(([a]) => a > m);
+    if(next){ const mins = next[0] - m; now = `${String(Math.floor(next[0]/60)).padStart(2,"0")}:${String(next[0]%60).padStart(2,"0")}에 운행 다시 시작`; sub = (mins >= 60 ? `${Math.floor(mins/60)}시간 ${mins%60}분` : `${mins}분`) + " 남았어요." + (next[0] === 780 ? " 점심시간엔 운행하지 않아요." : ""); cls = "soon"; label = "대기"; }
+    else { now = "오늘 운행이 끝났어요"; sub = "다음 운행은 08:00부터예요."; }
+  }
+  $("#bus-now").innerHTML = `${esc(now)}<small>${esc(sub)} 시간대별 간격 기준이라 실제 도착 시각과 다를 수 있어요.</small>`;
+  $("#bus-pill").className = "pill " + cls; $("#bus-pill").textContent = label;
+}
+function renderCampus(){
+  renderBus();
+  const diet = NOTICES.filter(n => n.cat === "생활" && /식당 메뉴|식단/.test(n.title)).sort((a,b) => b.posted.localeCompare(a.posted))[0];
+  if(diet){ $("#diet-link").href = diet.url; $("#diet-title").textContent = diet.title.replace("학생 식당 메뉴 안내", "이번 주 식단표"); }
+  const cal = NOTICES.filter(n => n.cat === "학사" && n.deadline && status(n).cls !== "closed").sort((a,b) => (a.from || a.deadline).localeCompare(b.from || b.deadline)).slice(0, 5);
+  $("#cal-list").innerHTML = cal.length ? cal.map(rowItem).join("") : `<div class="empty">다가오는 학사 공지가 없어요.</div>`;
+}
+renderCampus();
+setInterval(renderBus, 60000);
+
+/* 공지 자동 갱신: 내 웹주소(GitHub) 버전은 매일 갱신되는 data.json을 읽어요 */
+function renderAll(){ renderFit(); renderCounts(); renderNew(); renderList(); renderCampus(); if(progSrc) renderProg(); }
+if(!IN_CLAUDE){
+  // GitHub 저장소의 최신 data.json을 먼저 읽고, 안 되면 같은 폴더의 data.json
+  const ghUser = location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : "";
+  const ghRepo = location.pathname.split("/").filter(Boolean)[0] || "";
+  const urls = (ghUser && ghRepo ? [`https://raw.githubusercontent.com/${ghUser}/${ghRepo}/main/data.json`] : []).concat(["data.json"]);
+  const tryLoad = i => i >= urls.length ? Promise.resolve(null)
+    : fetch(urls[i], {cache:"no-store"}).then(r => r.ok ? r.json() : tryLoad(i + 1)).catch(() => tryLoad(i + 1));
+  tryLoad(0).then(d => {
+    if(!d || !Array.isArray(d.notices) || d.notices.length < 5) return;
+    NOTICES.splice(0, NOTICES.length, ...d.notices);
+    if(d.updated){ const t = new Date(d.updated); DATA_DATE = `${t.getMonth()+1}월 ${t.getDate()}일`; }
+    renderAll();
+  }).catch(() => {});
+}
+
+const SUGGEST = ["이번 주 과제 마감 알려줘","지금 신청할 수 있는 거 있어?","경영학과 대상 프로그램 알려줘","상경계 취업 프로그램 알려줘","교내추천 채용 있어?"];
+$("#suggest").innerHTML = SUGGEST.map(s => `<button class="chip" type="button">${esc(s)}</button>`).join("");
+$("#suggest").addEventListener("click", e => { const c = e.target.closest(".chip"); if(c) ask(c.textContent); });
+
+const getRules = () => `너는 영남대학교 학생을 돕는 'All for YU' 공지 도우미야. 오늘은 ${TODAY_LABEL}야.
+규칙:
+- 아래 [공지 데이터]에 있는 내용만으로 답해. 없는 사실은 지어내지 말고 "모은 공지에서는 찾지 못했어요. 학교 홈페이지나 해당 부서에 확인해 주세요."라고 말해.
+- 친근한 존댓말, 한국어로, 휴대폰 화면에 맞게 짧게(3~6줄). 날짜·장소·대상·신청방법을 우선 알려줘.
+- 오늘 기준으로 마감이 지났으면 "마감됨"이라고 분명히 말해.
+- 근거로 쓴 공지는 문장 끝에 [#번호] 형식으로 표시해.
+- 유토피아·어울림 항목의 신청 현황은 ${DATA_DATE} 기준이라 바뀌었을 수 있어. 신청은 원문 링크에서 하라고 안내해. 경영학과는 상경계열이야.
+- 학교 공지와 무관한 질문, 개인정보(학번·비밀번호 등) 요청에는 답하지 말고 공지 관련 질문을 부탁해.
+
+[공지 데이터]
+${NOTICES.map(n => `#${n.id} [${n.cat}] ${n.title} | 게시 ${n.posted || "-"} | 시작 ${n.from || "-"} | 마감 ${n.deadline || "없음"} | ${n.body}`).join("\n")}`;
+
+const turns = [];
+let ctl = null;
+function addMsg(role, html){
+  const m = document.createElement("div"); m.className = "msg " + role;
+  m.innerHTML = `<div class="bubble">${html}</div>`; $("#thread").append(m);
+  $("#main").scrollTop = $("#main").scrollHeight; return m;
+}
+const formatAnswer = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\s*\[#(\d+)\]/g, "");
+function renderRefs(m, text){
+  const ids = [...new Set([...text.matchAll(/\[#(\d+)\]/g)].map(x => +x[1]))];
+  const list = ids.map(id => NOTICES.find(n => n.id === id)).filter(Boolean); if(!list.length) return;
+  const r = document.createElement("div"); r.className = "refs";
+  r.innerHTML = list.map(n => `<a class="ref" href="${esc(n.url)}" target="_blank" rel="noopener">#${n.id} ${esc(n.title.length > 22 ? n.title.slice(0,22) + "…" : n.title)}</a>`).join("");
+  m.append(r);
+}
+function keywordSearch(q){
+  const words = q.replace(/[?!.,]/g," ").split(/\s+/).filter(w => w.length >= 2).map(w => w.replace(/(은|는|이|가|을|를|에|에서|좀|있어|알려줘|해|어디서|뭐|있나요)$/,""));
+  const syn = {"신청":["신청","모집"],"장학금":["장학"],"휴학":["휴학","복학"],"취업":["취업","채용","멘토링"],"경영학과":["경영학과","상경"],"상경계":["상경"]};
+  return NOTICES.map(n => {
+    const hay = n.title + " " + n.body + " " + n.cat; let s = 0;
+    words.forEach(w => (syn[w] || [w]).forEach(k => { if(k && hay.includes(k)) s += 1; }));
+    if(/지금|이번|가능/.test(q) && n.deadline && status(n).cls !== "closed") s += 2;
+    return {n, s};
+  }).filter(x => x.s > 0).sort((a,b) => b.s - a.s).slice(0, 3).map(x => x.n);
+}
+async function ask(q){
+  q = q.trim(); if(!q || ctl) return;
+  addMsg("me", esc(q)); $("#ask-input").value = "";
+  // 과제·일정 질문은 기기 안에서만 답해요 (개인 일정은 AI로 보내지 않음)
+  if(/과제|내 일정|퀴즈|러닝엑스/.test(q)){
+    const ev = upcoming(5);
+    addMsg("bot", ev.length ? "다가오는 마감이에요.\n" + ev.map(e => `· ${esc(e.title)} — ${esc(whenLabel(e))} (${dday(e).label})`).join("\n")
+      : (lxEvents.length ? "다가오는 마감이 없어요." : "홈의 «내 일정»에서 러닝엑스 캘린더 파일을 먼저 불러와 주세요."));
+    return;
+  }
+  await samplePromise;
+  if(!aiReady()){
+    const hits = keywordSearch(q);
+    const m = addMsg("bot", hits.length ? `관련 공지 ${hits.length}건을 찾았어요.` : "모은 공지에서는 찾지 못했어요. 학교 홈페이지나 해당 부서에 확인해 주세요.");
+    if(hits.length){ const box = document.createElement("div"); box.className = "view"; box.style.cssText = "margin:0;gap:8px"; box.innerHTML = hits.map(card).join(""); m.append(box); }
+    return;
+  }
+  turns.push({role:"user", content:q}); while(turns.length > 8) turns.shift();
+  const m = addMsg("bot", "공지를 찾아보는 중…"); const bubble = m.querySelector(".bubble"); bubble.classList.add("thinking");
+  ctl = new AbortController(); setBusy(true);
+  try {
+    const text = await askAI(ctl.signal, ({text}) => { bubble.classList.remove("thinking"); bubble.innerHTML = formatAnswer(text); $("#main").scrollTop = $("#main").scrollHeight; });
+    turns.push({role:"assistant", content:text});
+    bubble.classList.remove("thinking"); bubble.innerHTML = formatAnswer(text); renderRefs(m, text);
+  } catch(e){
+    turns.pop(); bubble.classList.remove("thinking");
+    bubble.innerHTML = (e && e.text ? formatAnswer(e.text) + "<br>" : "") + esc(aiErrorCopy(e));
+  } finally { ctl = null; setBusy(false); }
+  $("#main").scrollTop = $("#main").scrollHeight;
+}
+function setBusy(b){ const btn = $("#ask-btn"); btn.textContent = b ? "멈춤" : "보내기"; btn.classList.toggle("stop", b); }
+$("#ask-form").addEventListener("submit", e => { e.preventDefault(); if(ctl){ ctl.abort(); return; } ask($("#ask-input").value); });
+</script>
+</body>
+</html>

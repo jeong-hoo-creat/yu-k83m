@@ -1,0 +1,242 @@
+"""All for YU 공지 자동 갱신 스크립트.
+
+GitHub Actions가 매일 실행해요. 학교 사이트 목록을 읽어서 data.json을 새로 써요.
+- GEMINI_API_KEY 비밀값이 있으면 Gemini(무료 등급)로 제목·날짜를 더 정확하게 뽑아요.
+- 없으면 링크와 날짜 패턴으로 뽑아요.
+외부 패키지 없이 파이썬 기본 기능만 써요.
+"""
+import datetime as dt
+import html
+import json
+import os
+import re
+import sys
+import urllib.parse
+import urllib.request
+
+KST = dt.timezone(dt.timedelta(hours=9))
+TODAY = dt.datetime.now(KST).date()
+UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
+
+SOURCES = [
+    # name, 기본 분류, 목록 주소, 글 링크 패턴, 목록의 날짜 의미
+    {"name": "경영학과 공지", "cat": "경영학과", "url": "https://www.yu.ac.kr/biz/board/notice.do",
+     "link": r"[?&]articleNo=(\d+)", "dates": "posted", "limit": 15},
+    {"name": "학사안내", "cat": "학사", "url": "https://www.yu.ac.kr/main/bachelor/bachelor-guide.do",
+     "link": r"[?&]articleNo=(\d+)", "dates": "period", "limit": 15},
+    {"name": "편의시설", "cat": "생활", "url": "https://www.yu.ac.kr/yucf/notice/diet.do",
+     "link": r"[?&]articleNo=(\d+)", "dates": "posted", "limit": 1},
+    {"name": "유토피아", "cat": "비교과", "url": "https://yutopia.yu.ac.kr/",
+     "link": r"/program/all/view/(\d+)", "dates": "period", "limit": 40},
+    {"name": "어울림", "cat": "취업", "url": "https://join.yu.ac.kr/front_new/",
+     "link": r"(?:P_IDX|[?&]idx)=(\d+)", "dates": "period", "limit": 20},
+]
+
+DATE_RE = re.compile(r"(20\d\d)[.\-/]\s?(\d{1,2})[.\-/]\s?(\d{1,2})")
+
+
+def log(*a):
+    print(*a, file=sys.stderr, flush=True)
+
+
+def get(url, data=None, headers=None, timeout=30):
+    h = {"User-Agent": UA, "Accept-Language": "ko-KR,ko;q=0.9"}
+    h.update(headers or {})
+    req = urllib.request.Request(url, data=data, headers=h)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        raw = r.read()
+        cs = r.headers.get_content_charset() or "utf-8"
+    try:
+        return raw.decode(cs, errors="replace")
+    except LookupError:
+        return raw.decode("utf-8", errors="replace")
+
+
+def text_of(fragment):
+    fragment = re.sub(r"(?is)<(script|style).*?</\1>", " ", fragment)
+    fragment = re.sub(r"(?s)<[^>]+>", " ", fragment)
+    return re.sub(r"\s+", " ", html.unescape(fragment)).strip()
+
+
+def iso(m):
+    y, mo, d = int(m[0]), int(m[1]), int(m[2])
+    try:
+        return dt.date(y, mo, d).isoformat()
+    except ValueError:
+        return ""
+
+
+def clean_url(base, href, pattern):
+    url = urllib.parse.urljoin(base, html.unescape(href))
+    p = urllib.parse.urlparse(url)
+    q = urllib.parse.parse_qs(p.query)
+    keep = {k: v for k, v in q.items() if k in ("mode", "articleNo", "P_IDX", "idx", "g_page", "m_page", "act")}
+    return urllib.parse.urlunparse(p._replace(query=urllib.parse.urlencode(keep, doseq=True), fragment=""))
+
+
+# ---------- 방법 1: 링크·날짜 패턴으로 뽑기 ----------
+def heuristic(src, page):
+    items, seen = [], set()
+    anchors = list(re.finditer(r'(?is)<a\b[^>]*href="([^"]+)"[^>]*>(.*?)</a>', page))
+    for i, a in enumerate(anchors):
+        href, inner = a.group(1), a.group(2)
+        m = re.search(src["link"], html.unescape(href))
+        if not m or m.group(1) in seen:
+            continue
+        seen.add(m.group(1))
+        # 이 링크부터 다음 글 링크 전까지를 한 항목으로 봐요
+        end = len(page)
+        for b in anchors[i + 1:]:
+            if re.search(src["link"], html.unescape(b.group(1))) and not re.search(src["link"] .replace("(\\d+)", m.group(1)), html.unescape(b.group(1))):
+                end = b.start()
+                break
+        start = max(0, a.start() - 400)
+        seg = page[start:end]
+        title = text_of(inner)
+        t2 = re.search(r'title="([^"]{6,})"', a.group(0))
+        if len(title) < 4 and t2:
+            title = html.unescape(t2.group(1))
+        if len(title) < 4:
+            tm = re.search(r'(?is)class="[^"]*(?:tit|subject|name)[^"]*"[^>]*>(.*?)</', page[a.start():end])
+            title = text_of(tm.group(1)) if tm else ""
+        if len(title) < 4 or len(title) > 200:
+            continue
+        dates = [d for d in (iso(x) for x in DATE_RE.findall(page[a.start():end][:1500])) if d]
+        item = {"title": title, "url": clean_url(src["url"], href, src["link"]), "cat": src["cat"]}
+        if src["dates"] == "posted" and dates:
+            item["posted"] = dates[0]
+        elif src["dates"] == "period" and dates:
+            if len(dates) >= 2:
+                item["from"], item["deadline"] = dates[0], dates[1]
+            else:
+                item["deadline"] = dates[0]
+        items.append(item)
+        if len(items) >= src["limit"]:
+            break
+    return items
+
+
+# ---------- 방법 2: Gemini로 뽑기 (GEMINI_API_KEY가 있을 때) ----------
+GEMINI_MODEL = None
+
+
+def gemini_model(key):
+    global GEMINI_MODEL
+    if GEMINI_MODEL:
+        return GEMINI_MODEL
+    j = json.loads(get("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", headers={"x-goog-api-key": key}))
+    names = [m["name"] for m in j.get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])
+             and "gemini" in m["name"] and not re.search(r"embedding|image|tts|audio|live|preview|exp", m["name"])]
+    names.sort(key=lambda n: (0 if "flash-lite" in n else 1 if "flash" in n else 2, n), reverse=False)
+    GEMINI_MODEL = names[0]
+    log("Gemini model:", GEMINI_MODEL)
+    return GEMINI_MODEL
+
+
+def page_for_llm(src, page):
+    page = re.sub(r"(?is)<(script|style|svg|noscript).*?</\1>", " ", page)
+    page = re.sub(r'(?is)<a\b[^>]*href="([^"]+)"[^>]*>(.*?)</a>',
+                  lambda m: f" [{text_of(m.group(2))}]({urllib.parse.urljoin(src['url'], html.unescape(m.group(1)))}) ", page)
+    return text_of(page)[:30000]
+
+
+def llm(src, page, key):
+    prompt = f"""아래는 영남대학교 '{src['name']}' 페이지 내용이야. 학생에게 알릴 게시글·프로그램·채용을 최대 {src['limit']}개 뽑아.
+JSON 배열만 답해. 각 항목: {{"title": 제목, "url": 원문 링크(페이지에 있는 그대로), "posted": 게시일 YYYY-MM-DD 또는 "", "from": 신청 시작일 또는 "", "deadline": 신청 마감일(시간 있으면 "YYYY-MM-DD HH:MM") 또는 "", "summary": 대상·일시·장소·혜택을 한두 문장으로}}.
+페이지에 없는 정보는 지어내지 말고 빈 문자열로 둬. 오늘은 {TODAY.isoformat()}.
+
+{page_for_llm(src, page)}"""
+    body = json.dumps({"contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                       "generationConfig": {"temperature": 0, "responseMimeType": "application/json"}}).encode()
+    model = gemini_model(key)
+    j = json.loads(get(f"https://generativelanguage.googleapis.com/v1beta/{model}:generateContent", data=body,
+                       headers={"x-goog-api-key": key, "Content-Type": "application/json"}, timeout=120))
+    text = "".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"] if not p.get("thought"))
+    arr = json.loads(text)
+    out = []
+    for x in arr if isinstance(arr, list) else []:
+        title, url = str(x.get("title", "")).strip(), str(x.get("url", "")).strip()
+        if len(title) < 4 or not url.startswith("http") or not re.search(src["link"], url):
+            continue
+        item = {"title": title[:200], "url": clean_url(src["url"], url, src["link"]), "cat": src["cat"]}
+        for k in ("posted", "from", "deadline"):
+            v = str(x.get(k, "")).strip()
+            if re.match(r"^20\d\d-\d\d-\d\d( \d\d:\d\d)?$", v):
+                item[k] = v if k == "deadline" else v[:10]
+        if x.get("summary"):
+            item["body"] = str(x["summary"])[:400]
+        out.append(item)
+    return out
+
+
+# ---------- 합치기 ----------
+def main():
+    try:
+        with open("data.json", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        data = {"notices": []}
+    notices = data.get("notices", [])
+    by_url = {n["url"]: n for n in notices}
+    next_id = max([n.get("id", 0) for n in notices] + [0]) + 1
+    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    added = updated = 0
+
+    for src in SOURCES:
+        try:
+            page = get(src["url"])
+        except Exception as e:
+            log(f"[{src['name']}] 페이지를 못 읽었어요: {e}")
+            continue
+        items = []
+        if key:
+            try:
+                items = llm(src, page, key)
+                log(f"[{src['name']}] Gemini로 {len(items)}건")
+            except Exception as e:
+                log(f"[{src['name']}] Gemini 실패, 패턴 방식으로 바꿔요: {e}")
+        if not items:
+            items = heuristic(src, page)
+            log(f"[{src['name']}] 패턴 방식으로 {len(items)}건")
+        for it in items:
+            old = by_url.get(it["url"])
+            if old:
+                for k in ("title", "deadline", "from"):
+                    if it.get(k) and it[k] != old.get(k):
+                        old[k] = it[k]
+                        updated += 1
+                if it.get("body") and old.get("auto"):
+                    old["body"] = it["body"]
+                continue
+            n = {"id": next_id, "cat": it["cat"], "title": it["title"],
+                 "posted": it.get("posted") or TODAY.isoformat(), "deadline": it.get("deadline", ""),
+                 "body": it.get("body") or f"{src['name']}에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+                 "url": it["url"], "source": src["name"], "auto": True}
+            if it.get("from"):
+                n["from"] = it["from"]
+            notices.append(n)
+            by_url[n["url"]] = n
+            next_id += 1
+            added += 1
+
+    # 오래된 글 정리: 마감 3주 지난 것, 마감 없이 60일 지난 것 (생활 안내는 유지)
+    def keep(n):
+        if n.get("cat") == "생활" and not n.get("auto"):
+            return True
+        dl = (n.get("deadline") or "")[:10]
+        if dl:
+            return dt.date.fromisoformat(dl) >= TODAY - dt.timedelta(days=21)
+        ps = n.get("posted") or ""
+        return not ps or dt.date.fromisoformat(ps) >= TODAY - dt.timedelta(days=60)
+
+    notices = [n for n in notices if keep(n)]
+    notices.sort(key=lambda n: n.get("posted") or "", reverse=True)
+    notices = notices[:200]
+    out = {"updated": dt.datetime.now(KST).isoformat(timespec="minutes"), "notices": notices}
+    with open("data.json", "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
+    log(f"완료: 새 글 {added}건, 바뀐 항목 {updated}건, 전체 {len(notices)}건")
+
+
+if __name__ == "__main__":
+    main()
