@@ -464,7 +464,15 @@ if(IN_CLAUDE){
     a.href = "shortcuts://run-shortcut?name=" + a.dataset.sc; a.removeAttribute("target");
     a.querySelector("em").textContent = "바로 열기";
   });
-  $("#fallback").innerHTML = `안 열리면 앱스토어: <a href="https://apps.apple.com/kr/app/id6673893023" target="_blank" rel="noopener">출결</a> · <a href="https://apps.apple.com/kr/app/id498173110" target="_blank" rel="noopener">출입증</a> · <a href="https://apps.apple.com/kr/app/id6621208397" target="_blank" rel="noopener">러닝엑스</a> · <a href="https://lms.yu.ac.kr/" target="_blank" rel="noopener">러닝엑스 웹</a>`;
+  $("#fallback").innerHTML = `<details class="how"><summary>처음이세요? 단축어 설치 · 앱이 안 열릴 때</summary>
+    <p style="margin:6px 0">버튼을 눌러 «단축어 추가»를 하면 카드가 바로 작동해요. 이름은 바꾸지 마세요.</p>
+    <div class="chips">
+      <a class="chip" href="https://www.icloud.com/shortcuts/f76741ff6aa34419b3c8a41ce268207b" target="_blank" rel="noopener">스마트출결 단축어</a>
+      <a class="chip" href="https://www.icloud.com/shortcuts/7e39277435214017800dd29f25760938" target="_blank" rel="noopener">출입증 단축어</a>
+      <a class="chip" href="https://www.icloud.com/shortcuts/4c70b3a5ebf94e9dadac68977e9acfe6" target="_blank" rel="noopener">러닝엑스 단축어</a>
+    </div>
+    <p style="margin:6px 0 0">앱이 안 열리면 단축어에서 «앱»을 다시 골라 주세요. 앱스토어: <a href="https://apps.apple.com/kr/app/id6673893023" target="_blank" rel="noopener">출결</a> · <a href="https://apps.apple.com/kr/app/id498173110" target="_blank" rel="noopener">출입증</a> · <a href="https://apps.apple.com/kr/app/id6621208397" target="_blank" rel="noopener">러닝엑스</a> · <a href="https://lms.yu.ac.kr/" target="_blank" rel="noopener">러닝엑스 웹</a></p>
+  </details>`;
 }
 
 /* tabs */
