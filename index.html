@@ -144,6 +144,14 @@ a.row:hover strong{color:var(--accent)}
 .press-title{font-size:13px;color:var(--accent)}
 .press-tip p{margin:0;font-size:12.5px;color:var(--ink)}
 .press-tip .press-warn{color:var(--muted)}
+.lp-mock{display:flex;flex-direction:column;gap:6px;background:var(--bg);border-radius:10px;padding:8px}
+.lp-preview{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px dashed var(--line);border-radius:8px;padding:14px 10px;font-size:12px;color:var(--muted);opacity:.8}
+.lp-preview em{font-style:normal;color:var(--err);font-weight:600}
+.lp-menu{display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--line)}
+.lp-menu span{font-size:12.5px;padding:6px 10px;border-top:1px solid var(--line);color:var(--muted)}
+.lp-menu span:first-child{border-top:0}
+.lp-menu .lp-hit{color:var(--ink);font-weight:700;background:var(--accent-soft);display:flex;justify-content:space-between}
+.lp-hit em{font-style:normal;color:var(--accent)}
 .press-demo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .fake-link{color:#2F8FD8;font-size:13px;text-decoration:underline;text-underline-offset:2px}
 .press-badge{font-size:11.5px;font-weight:700;color:var(--accent-ink);background:var(--accent);border-radius:999px;padding:2px 8px;animation:press 1.6s ease-in-out infinite}
@@ -215,13 +223,22 @@ a.row:hover strong{color:var(--accent)}
         <div class="step"><span class="num">2</span><div>
           <strong>러닝엑스에서 일정 보내기</strong>
           <p>로그인 → «LMS 바로가기» → 왼쪽 위 <b>☰(세 줄)</b> → «캘린더» → 맨 아래로 내려 «캘린더 피드»</p>
+          <a class="chip" id="lx-open-safari" href="https://nice.yu.ac.kr/lms" target="_blank" rel="noopener">러닝엑스 열기 ↗</a>
           <div class="press-tip">
             <strong class="press-title">&lt;주의사항&gt;</strong>
             <div class="press-demo"><span class="fake-link">캘린더 피드를 보려면 클릭하세요.</span><span class="press-badge">꾹 1초</span></div>
-            <p><strong>이 파란 링크를 톡 말고 꾹 길게 눌러요.</strong> 뜨는 메뉴에서 «공유» → «All for YU로 보내기» → «일정 복사 완료» 창이 뜨면 성공.</p>
+            <p><strong>이 파란 링크를 톡 말고 꾹 길게 눌러요.</strong> 그러면 화면이 이렇게 떠요.</p>
+            <div class="lp-mock" aria-hidden="true">
+              <div class="lp-preview"><span>다운로드 화면</span></div>
+              <div class="lp-menu">
+                <span>열기</span>
+                <span>링크 복사</span>
+                <span class="lp-hit">공유… <em>← 이걸 눌러요</em></span>
+              </div>
+            </div>
+            <p>위에 뜨는 다운로드 화면은 <b>미리보기일 뿐</b>이에요. 건드리지 말고 <b>아래 메뉴의 «공유»</b> → «All for YU로 보내기» → «일정 복사 완료» 창이 뜨면 성공.</p>
             <p class="press-warn">톡 눌러서 «다운로드할 수 없습니다»가 떴다면 «확인»을 누르고 다시 꾹 눌러 주세요.</p>
           </div>
-          <a class="chip" href="https://nice.yu.ac.kr/lms" target="_blank" rel="noopener">러닝엑스 열기 ↗</a>
         </div></div>
         <div class="step"><span class="num">3</span><div>
           <strong>여기로 돌아와 붙여넣기</strong>
@@ -882,6 +899,13 @@ if(IN_CLAUDE){
   });
   $("#lx-paste").addEventListener("click", pasteICS);
   $("#lx-paste3").addEventListener("click", pasteICS);
+  // 홈 화면 앱 안에서 열면 앱 속 작은 브라우저로 열려서 링크를 꾹 누르면 다운로드 미리보기가 위에 떠요 → 진짜 Safari로 열기 (iOS 17+)
+  const standalone = window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+  if(standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)){
+    const o = $("#lx-open-safari");
+    o.href = "x-safari-https://nice.yu.ac.kr/lms"; o.removeAttribute("target");
+    o.textContent = "Safari로 러닝엑스 열기 ↗";
+  }
   $("#lx-paste-area").addEventListener("input", e => { const v = e.target.value; if(v.trim().length > 20){ e.target.value = ""; e.target.blur(); handleICS(v); } });
   $("#feed-status").addEventListener("click", e => { if(e.target.id === "feed-paste2") pasteICS(); if(e.target.id === "feed-help"){ $("#lx-connect").hidden = !$("#lx-connect").hidden; errBox(""); } });
   // 단축어 갔다가 돌아오면 «붙여넣기» 띄우기
