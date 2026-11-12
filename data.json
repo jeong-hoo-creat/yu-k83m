@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-12T07:28+09:00",
+ "updated": "2026-11-12T19:30+09:00",
  "notices": [
   {
    "id": 65,
@@ -182,7 +182,7 @@
   {
    "id": 83,
    "cat": "비교과",
-   "title": "115 HITS",
+   "title": "132 HITS",
    "posted": "2026-11-12",
    "deadline": "2026-11-16",
    "body": "유토피아에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
@@ -190,6 +190,101 @@
    "source": "유토피아",
    "auto": true,
    "from": "2026-11-16"
+  },
+  {
+   "id": 87,
+   "cat": "학사",
+   "title": "16 [인천대학교] 2026학년도 겨울 계절학기 학점교류 안내(2026.11.18.(수) 17:00)",
+   "posted": "2026-11-12",
+   "deadline": "2026-11-12",
+   "body": "학사안내에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://www.yu.ac.kr/main/bachelor/bachelor-guide.do?mode=view&articleNo=232486860",
+   "source": "학사안내",
+   "auto": true,
+   "from": "2026-11-18"
+  },
+  {
+   "id": 88,
+   "cat": "비교과",
+   "title": "경영대학",
+   "posted": "2026-11-12",
+   "deadline": "2026-11-18",
+   "body": "유토피아에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://yutopia.yu.ac.kr/ko/program/all/view/21153",
+   "source": "유토피아",
+   "auto": true,
+   "from": "2026-11-18"
+  },
+  {
+   "id": 89,
+   "cat": "비교과",
+   "title": "학생성공처",
+   "posted": "2026-11-12",
+   "deadline": "2026-11-27",
+   "body": "유토피아에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://yutopia.yu.ac.kr/ko/program/all/view/21096",
+   "source": "유토피아",
+   "auto": true,
+   "from": "2026-11-27"
+  },
+  {
+   "id": 90,
+   "cat": "취업",
+   "title": "구미상공회의소 교내추천 신입 5급 정규직 ~11.19(목)",
+   "posted": "2026-11-12",
+   "deadline": "",
+   "body": "어울림에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://join.yu.ac.kr/front_new/?g_page=job&m_page=job02&act=job.comp.view&idx=64071",
+   "source": "어울림",
+   "auto": true
+  },
+  {
+   "id": 91,
+   "cat": "취업",
+   "title": "이랜드파크 2026-11-11~2026-11-30",
+   "posted": "2026-11-12",
+   "deadline": "2026-11-30",
+   "body": "어울림에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://join.yu.ac.kr/front_new/?g_page=job&m_page=job01&act=job.comp.view&idx=64070",
+   "source": "어울림",
+   "auto": true,
+   "from": "2026-11-11"
+  },
+  {
+   "id": 92,
+   "cat": "취업",
+   "title": "교보생명 2026-11-12~2026-11-22",
+   "posted": "2026-11-12",
+   "deadline": "2026-11-22",
+   "body": "어울림에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://join.yu.ac.kr/front_new/?g_page=job&m_page=job01&act=job.comp.view&idx=64067",
+   "source": "어울림",
+   "auto": true,
+   "from": "2026-11-12"
+  },
+  {
+   "id": 93,
+   "cat": "취업",
+   "title": "디포커스(주) 2026-11-12~2026-11-27",
+   "posted": "2026-11-12",
+   "deadline": "2026-11-27",
+   "body": "어울림에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://join.yu.ac.kr/front_new/?g_page=job&m_page=job01&act=job.comp.view&idx=64065",
+   "source": "어울림",
+   "auto": true,
+   "from": "2026-11-12"
+  },
+  {
+   "id": 94,
+   "cat": "취업",
+   "title": "동화약품 2026-11-12~2026-11-24",
+   "posted": "2026-11-12",
+   "deadline": "2026-11-24",
+   "body": "어울림에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://join.yu.ac.kr/front_new/?g_page=job&m_page=job01&act=job.comp.view&idx=64064",
+   "source": "어울림",
+   "auto": true,
+   "from": "2026-11-12"
   },
   {
    "id": 18,
@@ -444,7 +539,8 @@
    "deadline": "2026-11-11",
    "body": "어울림 진로·취업 프로그램. 접수 11.02~11.11. 교육 11월 17일. 신청 현황 55/130명(11월 11일 밤 기준). 신청은 어울림에서.",
    "url": "https://join.yu.ac.kr/front_new/?g_page=program&m_page=program01&act=view.new&P_IDX=2650",
-   "source": "어울림"
+   "source": "어울림",
+   "from": "2026-11-17"
   },
   {
    "id": 47,
