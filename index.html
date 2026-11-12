@@ -129,6 +129,18 @@ a.row:hover strong{color:var(--accent)}
 .bot .bubble.thinking{color:var(--muted)}
 .refs{display:flex;flex-wrap:wrap;gap:6px}
 .ref{font-size:12.5px;text-decoration:none;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:3px 8px}
+.connect{display:flex;flex-direction:column;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
+.step{display:flex;gap:10px;align-items:flex-start}
+.step>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.step strong{font-size:14px}
+.step p{margin:0;font-size:12.5px;color:var(--muted)}
+.step .field{width:100%;flex-wrap:nowrap}
+.step input{font-size:16px}
+.num{flex:none;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:12.5px;font-weight:700;display:grid;place-items:center}
+.small-btn.wide{width:100%;padding:9px;font-size:14px}
+.connect .note{margin:0;font-size:12px;color:var(--muted)}
+.linkish{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;cursor:pointer}
+.feed-status{margin:0;font-size:12px;color:var(--muted)}
 .err{color:var(--err);font-size:12.5px}
 .field{display:flex;gap:8px;flex-wrap:wrap}
 .field input,.field select{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
@@ -169,7 +181,7 @@ a.row:hover strong{color:var(--accent)}
     <div class="apps">
       <a class="app" data-sc="%EC%8A%A4%EB%A7%88%ED%8A%B8%EC%B6%9C%EA%B2%B0" href="https://apps.apple.com/kr/app/id6673893023" target="_blank" rel="noopener"><strong>스마트출결</strong><span>출석체크·출결현황</span><em>앱 열기 ↗</em></a>
       <a class="app" data-sc="%EC%B6%9C%EC%9E%85%EC%A6%9D" data-direct="clickerapp://" href="https://apps.apple.com/kr/app/id498173110" target="_blank" rel="noopener"><strong>클리커</strong><span>건물출입·좌석배정</span><em>앱 열기 ↗</em></a>
-      <a class="app" data-sc="%EB%9F%AC%EB%8B%9D%EC%97%91%EC%8A%A4" data-direct="canvas-courses://" href="https://apps.apple.com/kr/app/id6621208397" target="_blank" rel="noopener"><strong>러닝엑스</strong><span>강의포털·과제공지</span><em>앱 열기 ↗</em></a>
+      <a class="app" data-sc="%EB%9F%AC%EB%8B%9D%EC%97%91%EC%8A%A4" data-direct="canvas-courses://" href="https://apps.apple.com/kr/app/id6621208397" target="_blank" rel="noopener"><strong>러닝엑스</strong><span>강의포털·수업공지</span><em>앱 열기 ↗</em></a>
       <a class="app" href="https://portal.yu.ac.kr/sso/login.jsp?type=easy" target="_blank" rel="noopener"><strong>URP</strong><span>학생종합정보시스템</span><em>웹으로 열기 ↗</em></a>
     </div>
     <div id="setup-sheet" hidden></div>
@@ -184,8 +196,26 @@ a.row:hover strong{color:var(--accent)}
         </div>
         <input type="file" id="lx-file" accept=".ics,text/calendar" hidden>
       </div>
+      <div class="connect" id="lx-connect" hidden>
+        <div class="step"><span class="num">1</span><div>
+          <strong>러닝엑스에서 캘린더 주소 복사</strong>
+          <p>로그인 → «LMS 바로가기» → 왼쪽 «캘린더» → 오른쪽 아래 «캘린더 피드» → 주소 복사</p>
+          <a class="chip" href="https://nice.yu.ac.kr/lms" target="_blank" rel="noopener">러닝엑스 열기 ↗</a>
+        </div></div>
+        <div class="step"><span class="num">2</span><div>
+          <strong>여기에 붙여넣고 연결</strong>
+          <div class="field">
+            <input id="feed-input" type="url" inputmode="url" placeholder="https://…/feeds/calendars/….ics" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="캘린더 피드 주소">
+            <button class="small-btn" type="button" id="feed-paste">붙여넣기</button>
+          </div>
+          <button class="small-btn primary wide" type="button" id="feed-save">연결</button>
+        </div></div>
+        <p class="err" id="feed-err" hidden></p>
+        <p class="note">주소는 이 기기에만 저장돼요. 이 주소로 내 일정을 볼 수 있으니 다른 사람에게 보내지 마세요. 파일이 있다면 <button class="linkish" type="button" id="lx-pick2">.ics 파일로 불러오기</button></p>
+      </div>
       <div class="rows" id="lx-list"></div>
       <button class="small-btn" type="button" id="lx-more" hidden></button>
+      <p class="feed-status" id="feed-status" hidden></p>
       <details class="how" id="auto-box"><summary id="auto-sum">자동 업데이트 설정</summary>
         <p style="margin:6px 0">GitHub에 넣은 일정 비밀번호(SCHEDULE_PASS)를 입력하면 새 과제가 하루 두 번 자동으로 들어와요. 비밀번호는 이 기기에만 저장돼요.</p>
         <div class="field">
@@ -195,7 +225,7 @@ a.row:hover strong{color:var(--accent)}
         </div>
         <p class="err" id="sched-err" hidden></p>
       </details>
-      <details class="how"><summary>러닝엑스 일정 불러오는 법</summary>
+      <details class="how" id="lx-how"><summary>러닝엑스 일정 불러오는 법</summary>
         <ol>
           <li>러닝엑스 웹 → 캘린더 → «캘린더 피드» 주소로 .ics 파일 받기 (PC가 편해요)</li>
           <li>위 «불러오기»로 그 파일 선택. 일정은 이 기기에만 저장돼요.</li>
@@ -260,13 +290,13 @@ a.row:hover strong{color:var(--accent)}
   </section>
   <!-- 캠퍼스: 순환버스 · 학식 · 학사 일정 -->
   <section class="view" id="view-campus" hidden>
-    <section class="panel" aria-labelledby="mc-h">
+    <section class="panel" aria-labelledby="mc-h" hidden>
       <div class="ph"><h2 id="mc-h">내 과목</h2><span class="note">이 기기에만 저장</span></div>
       <p class="note" style="margin:0">내 일정(러닝엑스)에서 과목·분반을 자동으로 찾아요. 담당 교수님을 골라두면 대화에서 «유통관리 교수님 번호»처럼 물을 때 내 분반 교수님으로 답해요.</p>
       <div id="mc-list"></div>
       <div class="field"><input id="mc-name" placeholder="과목 직접 추가 (예: 마케팅조사론)" aria-label="과목 이름"><button class="small-btn" type="button" id="mc-add">추가</button></div>
     </section>
-    <section class="panel" aria-labelledby="bus-h">
+    <section class="panel" aria-labelledby="bus-h" hidden>
       <div class="ph"><h2 id="bus-h">교내 순환버스</h2><span class="pill" id="bus-pill"></span></div>
       <p class="bus-now" id="bus-now"></p>
       <div class="rows">
@@ -284,7 +314,7 @@ a.row:hover strong{color:var(--accent)}
       </details>
       <a class="small-btn" style="align-self:flex-start" href="https://www.yu.ac.kr/main/intro/yu-news.do?mode=view&amp;articleNo=228839316" target="_blank" rel="noopener">순환버스 공지 원문 ↗</a>
     </section>
-    <section class="panel" aria-labelledby="meal-h">
+    <section class="panel" aria-labelledby="meal-h" hidden>
       <div class="ph"><h2 id="meal-h">학식</h2><span class="note">식단표는 PDF로 올라와요</span></div>
       <a class="row" id="diet-link" href="https://www.yu.ac.kr/yucf/notice/diet.do" target="_blank" rel="noopener"><strong id="diet-title">이번 주 식단표</strong><span class="pill open">보기 ↗</span><small id="diet-sub">학생회관·자연계·인문계 교직원식당</small></a>
       <div class="chips">
@@ -678,7 +708,7 @@ function courseAnswer(q){
     const ph = hit.cphone ? `<div class="chips"><a class="small-btn" href="tel:${esc(hit.cphone.replace(/[^0-9]/g, ""))}">${esc(hit.cphone)}</a></div>` : "";
     return {text:`내 ${label} 담당 교수님이에요.`, card:`<article class="notice"><div class="top"><h3>${esc(hit.cname)} 교수</h3><span class="pill info">내 과목</span></div><p>${esc(label)}</p>${ph}</article>`};
   }
-  return {text:`${label}의 담당 교수님을 아직 안 골랐어요. 캠퍼스 탭 → 내 과목에서 골라 주세요.`, card:""};
+  return {text:`${label}의 담당 교수님 정보는 아직 없어요. 경영학과 교수 연락처는 캠퍼스 탭 → 자주 찾는 연락처에서 볼 수 있어요.`, card:""};
 }
 
 /* tabs */
@@ -738,24 +768,94 @@ function renderLX(){
   $("#lx-clear").hidden = !lxEvents.length;
   $("#lx-more").hidden = all.length <= 4;
   $("#lx-more").textContent = lxAll ? "접기" : `${all.length - 4}개 더 보기`;
-  if(!lxEvents.length){ $("#lx-list").innerHTML = `<div class="empty">러닝엑스 캘린더 파일을 불러오면 과제·퀴즈 마감이 날짜순으로 보여요.</div>`; return; }
+  if(!lxEvents.length){ $("#lx-list").innerHTML = `<div class="empty">${IN_CLAUDE ? "러닝엑스 캘린더 파일을 불러오면" : "«연결하기»로 러닝엑스 캘린더 주소를 한 번 붙여넣으면"} 과제·퀴즈 마감이 날짜순으로 보여요.</div>`; return; }
   if(!list.length){ $("#lx-list").innerHTML = `<div class="empty">다가오는 마감이 없어요.</div>`; return; }
   $("#lx-list").innerHTML = list.map(e => { const d = dday(e); const t = `<strong>${esc(e.title)}</strong>`;
     const inner = `${t}<span class="pill ${d.cls}">${d.label}</span><small>${esc(whenLabel(e))}</small>`;
     return e.url ? `<a class="row" href="${esc(e.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="row">${inner}</div>`; }).join("");
 }
-$("#lx-pick").addEventListener("click", () => $("#lx-file").click());
+function applyEvents(evs){ lxEvents = evs; store.set("yu-lx-events", lxEvents); lxAll = false; renderLX(); detectCourses(); renderMyCourses(); }
 $("#lx-file").addEventListener("change", async e => {
   const f = e.target.files && e.target.files[0]; if(!f) return;
   const evs = parseICS(await f.text()); e.target.value = "";
   if(!evs.length){ $("#lx-list").innerHTML = `<div class="empty">일정을 읽지 못했어요. 러닝엑스 캘린더 피드에서 받은 .ics 파일인지 확인해 주세요.</div>`; return; }
-  lxEvents = evs; store.set("yu-lx-events", lxEvents); lxAll = false; renderLX(); detectCourses(); renderMyCourses();
-setInterval(renderLX, 60000);
+  applyEvents(evs); $("#lx-connect").hidden = true;
 });
-$("#lx-clear").addEventListener("click", () => { lxEvents = []; store.del("yu-lx-events"); renderLX(); });
+$("#lx-pick2").addEventListener("click", () => $("#lx-file").click());
 $("#lx-more").addEventListener("click", () => { lxAll = !lxAll; renderLX(); });
 renderLX();
+setInterval(renderLX, 60000);
 detectCourses(); renderMyCourses();
+
+/* 러닝엑스 캘린더 주소 연결: 주소를 한 번 붙여넣으면 앱을 열 때마다 새 일정을 직접 가져와요 (GitHub 버전) */
+const FEED_KEY = "yu-lx-feed", FEED_AT = "yu-lx-feed-at";
+function normFeed(raw){
+  const m = String(raw || "").match(/(webcals?|https?):\/\/[^\s"'<>]+/i); if(!m) return "";
+  return m[0].replace(/^webcals?:/i, "https:").replace(/^http:/i, "https:");
+}
+async function fetchFeed(url){
+  let r;
+  try { r = await fetch(url, {cache:"no-store", credentials:"omit"}); }
+  catch(e){ throw {code:"blocked"}; }
+  if(!r.ok) throw {code:"http", status:r.status};
+  const evs = parseICS(await r.text());
+  if(!evs.length) throw {code:"empty"};
+  return evs;
+}
+const feedErrCopy = e => e.code === "blocked" ? "러닝엑스가 앱에서 직접 가져오는 걸 막고 있거나 인터넷이 끊겼어요. 와이파이·데이터를 확인하고 다시 눌러 보세요. 계속 이러면 단축어 방식(B)으로 바꿔야 해요."
+  : e.code === "http" ? `주소가 바뀌었거나 잘못됐어요(오류 ${e.status}). 러닝엑스에서 주소를 다시 복사해 주세요.`
+  : "일정을 읽지 못했어요. «캘린더 피드» 주소가 맞는지 확인해 주세요.";
+function feedStatus(msg){
+  const url = store.get(FEED_KEY, "");
+  $("#feed-status").hidden = !url;
+  if(!url) return;
+  const at = store.get(FEED_AT, 0);
+  const k = new Date(at + 9 * 3600000), two = n => String(n).padStart(2, "0");
+  const t = at ? `${k.getUTCMonth() + 1}.${k.getUTCDate()} ${two(k.getUTCHours())}:${two(k.getUTCMinutes())}` : "";
+  $("#feed-status").innerHTML = `<span>${esc(msg || ("러닝엑스 연결됨" + (t ? " · " + t + " 갱신" : "")))}</span> <button class="linkish" type="button" id="feed-refresh">새로고침</button> · <button class="linkish" type="button" id="feed-off">연결 해제</button>`;
+}
+let feedBusy = false;
+async function refreshFeed(manual){
+  const url = store.get(FEED_KEY, ""); if(!url || feedBusy) return;
+  feedBusy = true; if(manual) feedStatus("새 일정 확인 중…");
+  try { applyEvents(await fetchFeed(url)); store.set(FEED_AT, Date.now()); feedStatus(); }
+  catch(e){ feedStatus(manual ? feedErrCopy(e) : "새 일정을 못 가져왔어요 · 저장된 일정을 보여주는 중"); }
+  finally { feedBusy = false; }
+}
+if(IN_CLAUDE){
+  $("#lx-pick").addEventListener("click", () => $("#lx-file").click());
+} else {
+  $("#lx-how").hidden = true;
+  const setBtn = () => { $("#lx-pick").textContent = store.get(FEED_KEY, "") ? "주소 바꾸기" : "연결하기"; $("#lx-pick").hidden = !!store.get(FEED_KEY, ""); };
+  setBtn();
+  $("#lx-pick").addEventListener("click", () => { $("#lx-connect").hidden = !$("#lx-connect").hidden; $("#feed-err").hidden = true; });
+  $("#feed-paste").addEventListener("click", async () => {
+    try { const t = await navigator.clipboard.readText(); const u = normFeed(t); $("#feed-input").value = u || t; }
+    catch(e){ $("#feed-input").focus(); $("#feed-err").hidden = false; $("#feed-err").textContent = "칸을 길게 눌러 «붙여넣기»를 골라 주세요."; }
+  });
+  $("#feed-save").addEventListener("click", async () => {
+    const url = normFeed($("#feed-input").value);
+    $("#feed-err").hidden = true;
+    if(!url){ $("#feed-err").hidden = false; $("#feed-err").textContent = "주소 형식이 아니에요. https:// 또는 webcal:// 로 시작하는 주소를 붙여넣어 주세요."; return; }
+    $("#feed-save").disabled = true; $("#feed-save").textContent = "일정 가져오는 중…";
+    try {
+      const evs = await fetchFeed(url);
+      store.set(FEED_KEY, url); store.set(FEED_AT, Date.now());
+      applyEvents(evs); $("#feed-input").value = ""; $("#lx-connect").hidden = true; setBtn(); feedStatus();
+    } catch(e){ $("#feed-err").hidden = false; $("#feed-err").textContent = feedErrCopy(e); }
+    finally { $("#feed-save").disabled = false; $("#feed-save").textContent = "연결"; }
+  });
+  $("#feed-status").addEventListener("click", e => {
+    if(e.target.id === "feed-refresh") refreshFeed(true);
+    if(e.target.id === "feed-off"){ store.del(FEED_KEY); store.del(FEED_AT); setBtn(); feedStatus(); }
+  });
+  feedStatus();
+  refreshFeed(false);
+  document.addEventListener("visibilitychange", () => {
+    if(!document.hidden && Date.now() - store.get(FEED_AT, 0) > 10 * 60000) refreshFeed(false);
+  });
+}
+$("#lx-clear").addEventListener("click", () => { lxEvents = []; store.del("yu-lx-events"); store.del(FEED_KEY); store.del(FEED_AT); renderLX(); if(!IN_CLAUDE){ $("#lx-pick").hidden = false; $("#lx-pick").textContent = "연결하기"; feedStatus(); } });
 
 /* 내 일정 자동 업데이트: GitHub이 암호화해 둔 schedule.enc.json을 이 기기의 비밀번호로 풀어요 */
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -797,7 +897,7 @@ if(IN_CLAUDE){ $("#auto-box").hidden = true; }
 else {
   const saved = store.get("yu-sched-pass", "");
   schedUI(false);
-  if(saved) syncSchedule(saved, false).then(ok => { if(!ok) schedUI(false); });
+  if(saved && !store.get(FEED_KEY, "")) syncSchedule(saved, false).then(ok => { if(!ok) schedUI(false); });
   $("#sched-save").addEventListener("click", async () => {
     const p = $("#sched-pass").value; if(!p) return;
     $("#sched-save").disabled = true; $("#sched-save").textContent = "확인 중…";
@@ -817,17 +917,17 @@ const INTERESTS = {
   "AI·디지털": n => /AI|3D|Canva|디지털|미디어/.test(n.title),
   "장학": n => /장학/.test(n.title + n.body)
 };
-let picked = store.get("yu-interests", ["경영·상경", "취업"]).filter(k => INTERESTS[k]);
+let picked = store.get("yu-interests", ["경영·상경"]).filter(k => INTERESTS[k]).slice(0, 1);
 function renderFit(){
   $("#interests").innerHTML = Object.keys(INTERESTS).map(k => `<button class="chip" type="button" aria-pressed="${picked.includes(k)}" data-k="${k}">${k}</button>`).join("");
   const fits = NOTICES.filter(n => n.deadline && status(n).cls !== "closed").filter(n => picked.some(k => INTERESTS[k](n)))
     .sort((a,b) => a.deadline.localeCompare(b.deadline)).slice(0, 6);
-  $("#fit-list").innerHTML = !picked.length ? `<div class="empty">관심사를 고르면 맞는 활동을 마감 빠른 순으로 보여줘요.</div>`
+  $("#fit-list").innerHTML = !picked.length ? `<div class="empty">관심사를 하나 고르면 맞는 활동을 마감 빠른 순으로 보여줘요.</div>`
     : fits.length ? fits.map(rowItem).join("") : `<div class="empty">지금 신청 가능한 맞는 활동이 없어요.</div>`;
 }
 $("#interests").addEventListener("click", e => {
   const c = e.target.closest("[data-k]"); if(!c) return;
-  const k = c.dataset.k; picked = picked.includes(k) ? picked.filter(x => x !== k) : [...picked, k];
+  const k = c.dataset.k; picked = picked[0] === k ? [] : [k];
   store.set("yu-interests", picked); renderFit();
 });
 renderFit();
