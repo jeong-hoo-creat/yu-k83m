@@ -1524,11 +1524,13 @@ if(IN_CLAUDE){
   });
   $("#lx-paste").addEventListener("click", pasteICS);
   $("#lx-paste3").addEventListener("click", pasteICS);
+  // 지금 열려 있는 버전 확인용 (내 일정 «연결하기» 안내 맨 아래)
+  $("#lx-connect").insertAdjacentHTML("beforeend", `<p class="note" style="margin:0;font-size:11px;opacity:.7">버전 2026.11.13-2</p>`);
   // 홈 화면 앱 안에서 열면 앱 속 작은 브라우저로 열려서 링크를 꾹 누르면 다운로드 미리보기가 위에 떠요 → 진짜 Safari로 열기 (iOS 17+)
-  const standalone = window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
   // 아이패드는 Safari가 스스로를 Mac이라고 알려서 터치 여부로 함께 확인해요
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-  if(standalone && isIOS){
+  // 홈 화면 앱인지 판별이 기기마다 달라서, 아이폰·아이패드면 항상 Safari 앱으로 열어요 (Safari 안에서 눌러도 Safari로 열려요)
+  if(isIOS){
     const o = $("#lx-open-safari");
     o.href = "x-safari-https://nice.yu.ac.kr/lms"; o.removeAttribute("target");
     o.textContent = "Safari로 러닝엑스 열기 ↗";
