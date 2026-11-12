@@ -205,13 +205,14 @@ a.row:hover strong{color:var(--accent)}
         </div></div>
         <div class="step"><span class="num">2</span><div>
           <strong>러닝엑스에서 일정 보내기</strong>
-          <p>로그인 → «LMS 바로가기» → 왼쪽 «캘린더» → 오른쪽 아래 «캘린더 피드» → 주소 눌러 열기 → 공유 → «All for YU로 보내기»</p>
+          <p>로그인 → «LMS 바로가기» → 왼쪽 «캘린더» → 오른쪽 아래 «캘린더 피드» → 파란 «캘린더 피드를 보려면 클릭하세요»를 <b>길게 눌러</b> → 공유 → «All for YU로 보내기»</p>
           <a class="chip" href="https://nice.yu.ac.kr/lms" target="_blank" rel="noopener">러닝엑스 열기 ↗</a>
         </div></div>
         <div class="step"><span class="num">3</span><div>
           <strong>여기로 돌아와 붙여넣기</strong>
           <p>«붙여넣기» → 아이폰이 띄우는 «붙여넣기»를 한 번 더 눌러요.</p>
           <button class="small-btn primary wide" type="button" id="lx-paste3">붙여넣기</button>
+          <textarea id="lx-paste-area" rows="2" placeholder="버튼이 안 되면 여기를 길게 눌러 «붙여넣기»" aria-label="일정 붙여넣기 칸" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width:100%;font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);resize:none"></textarea>
         </div></div>
         <p class="err" id="feed-err" hidden></p>
         <p class="note">캘린더 피드 주소로 내 일정을 볼 수 있으니 다른 사람에게 보내지 마세요. 파일이 있다면 <button class="linkish" type="button" id="lx-pick2">.ics 파일로 불러오기</button></p>
@@ -803,7 +804,7 @@ detectCourses(); renderMyCourses();
 
 /* 러닝엑스 일정: 단축어가 캘린더 피드를 받아 복사 → 앱에서 붙여넣기 (러닝엑스가 웹에서 직접 가져오기를 막아서) */
 const LX_SC_NAME = "All for YU로 보내기";
-const LX_SC_URL = "https://www.icloud.com/shortcuts/3761c52f25af403d8f1556e8cd9c7144";   // «All for YU로 보내기» 단축어 iCloud 공유 링크 (공유 시트용, 개인정보 없음)
+const LX_SC_URL = "https://www.icloud.com/shortcuts/5f8a00597141484aab9a3726192d6df4";   // «All for YU로 보내기» 단축어 iCloud 공유 링크 (공유 시트용, 개인정보 없음)
 const SC_KEY = "yu-lx-sc", FEED_AT = "yu-lx-feed-at";
 const errBox = msg => { $("#feed-err").hidden = !msg; $("#feed-err").textContent = msg || ""; };
 function stamp(){
@@ -820,7 +821,11 @@ function feedStatus(msg){
 async function pasteICS(){
   let text = "";
   try { text = await navigator.clipboard.readText(); }
-  catch(e){ errBox("붙여넣기가 허용되지 않았어요. 다시 «붙여넣기»를 누르고 뜨는 «붙여넣기»를 골라 주세요."); $("#lx-connect").hidden = false; return; }
+  catch(e){ errBox("붙여넣기가 허용되지 않았어요. 아래 칸을 길게 눌러 «붙여넣기»를 골라 주세요."); $("#lx-connect").hidden = false; return; }
+  if(!text.trim()){ errBox("버튼으로는 복사된 내용을 못 읽었어요. 아래 칸을 길게 눌러 «붙여넣기»를 골라 주세요."); $("#lx-connect").hidden = false; $("#lx-paste-area").focus(); return; }
+  handleICS(text);
+}
+function handleICS(text){
   // 단축어가 «Base64 인코딩»으로 보낸 경우 풀어서 읽기
   if(!/BEGIN:VCALENDAR/i.test(text)){
     const b64 = text.replace(/\s+/g, "");
@@ -834,7 +839,7 @@ async function pasteICS(){
   }
   if(!/BEGIN:VCALENDAR/i.test(text)){
     const peek = text.trim().slice(0, 40).replace(/user_[A-Za-z0-9]+/g, "user_…");
-    errBox(/^\s*(webcal|https?):/i.test(text) ? "복사된 건 주소예요. 그 주소를 Safari에서 열고 공유 → «All for YU로 보내기»를 눌러 주세요." : (text.trim() ? `복사된 내용이 일정 형식이 아니에요(앞부분: «${peek}»). 단축어의 «텍스트» 동작을 «Base64 인코딩»으로 바꿔 주세요.` : "복사된 일정이 없어요. 러닝엑스 캘린더 피드에서 공유 → «All for YU로 보내기»를 먼저 해 주세요."));
+    errBox(/^\s*(webcal|https?):/i.test(text) ? "복사된 건 주소예요. 주소 링크를 길게 눌러 공유 → «All for YU로 보내기»를 눌러 주세요." : (text.trim() ? `복사된 내용이 일정 형식이 아니에요(앞부분: «${peek}»). 단축어의 «텍스트» 동작을 «Base64 인코딩»으로 바꿔 주세요.` : "복사된 일정이 없어요. 러닝엑스 캘린더 피드에서 공유 → «All for YU로 보내기»를 먼저 해 주세요."));
     $("#lx-connect").hidden = false; return;
   }
   const evs = parseICS(text);
@@ -862,6 +867,7 @@ if(IN_CLAUDE){
   });
   $("#lx-paste").addEventListener("click", pasteICS);
   $("#lx-paste3").addEventListener("click", pasteICS);
+  $("#lx-paste-area").addEventListener("input", e => { const v = e.target.value; if(v.trim().length > 20){ e.target.value = ""; e.target.blur(); handleICS(v); } });
   $("#feed-status").addEventListener("click", e => { if(e.target.id === "feed-paste2") pasteICS(); if(e.target.id === "feed-help"){ $("#lx-connect").hidden = !$("#lx-connect").hidden; errBox(""); } });
   // 단축어 갔다가 돌아오면 «붙여넣기» 띄우기
   document.addEventListener("visibilitychange", () => {
