@@ -140,6 +140,7 @@ a.row:hover strong{color:var(--accent)}
 .small-btn.wide{width:100%;padding:9px;font-size:14px}
 .connect .note{margin:0;font-size:12px;color:var(--muted)}
 .linkish{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;cursor:pointer}
+.paste-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent-soft);border-radius:12px;padding:8px 10px 8px 12px;font-size:13px}
 .feed-status{margin:0;font-size:12px;color:var(--muted)}
 .err{color:var(--err);font-size:12.5px}
 .field{display:flex;gap:8px;flex-wrap:wrap}
@@ -198,20 +199,26 @@ a.row:hover strong{color:var(--accent)}
       </div>
       <div class="connect" id="lx-connect" hidden>
         <div class="step"><span class="num">1</span><div>
-          <strong>러닝엑스에서 캘린더 주소 복사</strong>
-          <p>로그인 → «LMS 바로가기» → 왼쪽 «캘린더» → 오른쪽 아래 «캘린더 피드» → 주소 복사</p>
-          <a class="chip" href="https://nice.yu.ac.kr/lms" target="_blank" rel="noopener">러닝엑스 열기 ↗</a>
+          <strong>«All for YU로 보내기» 단축어 추가</strong>
+          <p>처음 한 번만 하면 돼요.</p>
+          <a class="chip" id="lx-sc-link" href="#" target="_blank" rel="noopener">단축어 추가 ↗</a>
         </div></div>
         <div class="step"><span class="num">2</span><div>
-          <strong>여기에 붙여넣고 연결</strong>
-          <div class="field">
-            <input id="feed-input" type="url" inputmode="url" placeholder="https://…/feeds/calendars/….ics" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="캘린더 피드 주소">
-            <button class="small-btn" type="button" id="feed-paste">붙여넣기</button>
-          </div>
-          <button class="small-btn primary wide" type="button" id="feed-save">연결</button>
+          <strong>러닝엑스에서 일정 보내기</strong>
+          <p>로그인 → «LMS 바로가기» → 왼쪽 «캘린더» → 오른쪽 아래 «캘린더 피드» → 주소 눌러 열기 → 공유 → «All for YU로 보내기»</p>
+          <a class="chip" href="https://nice.yu.ac.kr/lms" target="_blank" rel="noopener">러닝엑스 열기 ↗</a>
+        </div></div>
+        <div class="step"><span class="num">3</span><div>
+          <strong>여기로 돌아와 붙여넣기</strong>
+          <p>«붙여넣기» → 아이폰이 띄우는 «붙여넣기»를 한 번 더 눌러요.</p>
+          <button class="small-btn primary wide" type="button" id="lx-paste3">붙여넣기</button>
         </div></div>
         <p class="err" id="feed-err" hidden></p>
-        <p class="note">주소는 이 기기에만 저장돼요. 이 주소로 내 일정을 볼 수 있으니 다른 사람에게 보내지 마세요. 파일이 있다면 <button class="linkish" type="button" id="lx-pick2">.ics 파일로 불러오기</button></p>
+        <p class="note">캘린더 피드 주소로 내 일정을 볼 수 있으니 다른 사람에게 보내지 마세요. 파일이 있다면 <button class="linkish" type="button" id="lx-pick2">.ics 파일로 불러오기</button></p>
+      </div>
+      <div class="paste-bar" id="paste-bar" hidden>
+        <span>단축어가 일정을 복사했나요?</span>
+        <button class="small-btn primary" type="button" id="lx-paste">붙여넣기</button>
       </div>
       <div class="rows" id="lx-list"></div>
       <button class="small-btn" type="button" id="lx-more" hidden></button>
@@ -775,7 +782,7 @@ function renderLX(){
   $("#lx-clear").hidden = !lxEvents.length;
   $("#lx-more").hidden = all.length <= 4;
   $("#lx-more").textContent = lxAll ? "접기" : `${all.length - 4}개 더 보기`;
-  if(!lxEvents.length){ $("#lx-list").innerHTML = `<div class="empty">${IN_CLAUDE ? "러닝엑스 캘린더 파일을 불러오면" : "«연결하기»로 러닝엑스 캘린더 주소를 한 번 붙여넣으면"} 과제·퀴즈 마감이 날짜순으로 보여요.</div>`; return; }
+  if(!lxEvents.length){ $("#lx-list").innerHTML = `<div class="empty">${IN_CLAUDE ? "러닝엑스 캘린더 파일을 불러오면" : "«연결하기»로 러닝엑스를 한 번 연결하면"} 과제·퀴즈 마감이 날짜순으로 보여요.</div>`; return; }
   if(!list.length){ $("#lx-list").innerHTML = `<div class="empty">다가오는 마감이 없어요.</div>`; return; }
   $("#lx-list").innerHTML = list.map(e => { const d = dday(e); const t = `<strong>${esc(e.title)}</strong>`;
     const inner = `${t}<span class="pill ${d.cls}">${d.label}</span><small>${esc(whenLabel(e))}</small>`;
@@ -794,75 +801,62 @@ renderLX();
 setInterval(renderLX, 60000);
 detectCourses(); renderMyCourses();
 
-/* 러닝엑스 캘린더 주소 연결: 주소를 한 번 붙여넣으면 앱을 열 때마다 새 일정을 직접 가져와요 (GitHub 버전) */
-const FEED_KEY = "yu-lx-feed", FEED_AT = "yu-lx-feed-at";
-function normFeed(raw){
-  const m = String(raw || "").match(/(webcals?|https?):\/\/[^\s"'<>]+/i); if(!m) return "";
-  return m[0].replace(/^webcals?:/i, "https:").replace(/^http:/i, "https:");
-}
-async function fetchFeed(url){
-  let r;
-  try { r = await fetch(url, {cache:"no-store", credentials:"omit"}); }
-  catch(e){ throw {code:"blocked"}; }
-  if(!r.ok) throw {code:"http", status:r.status};
-  const evs = parseICS(await r.text());
-  if(!evs.length) throw {code:"empty"};
-  return evs;
-}
-const feedErrCopy = e => e.code === "blocked" ? "러닝엑스가 앱에서 직접 가져오는 걸 막고 있거나 인터넷이 끊겼어요. 와이파이·데이터를 확인하고 다시 눌러 보세요. 계속 이러면 단축어 방식(B)으로 바꿔야 해요."
-  : e.code === "http" ? `주소가 바뀌었거나 잘못됐어요(오류 ${e.status}). 러닝엑스에서 주소를 다시 복사해 주세요.`
-  : "일정을 읽지 못했어요. «캘린더 피드» 주소가 맞는지 확인해 주세요.";
-function feedStatus(msg){
-  const url = store.get(FEED_KEY, "");
-  $("#feed-status").hidden = !url;
-  if(!url) return;
-  const at = store.get(FEED_AT, 0);
+/* 러닝엑스 일정: 단축어가 캘린더 피드를 받아 복사 → 앱에서 붙여넣기 (러닝엑스가 웹에서 직접 가져오기를 막아서) */
+const LX_SC_NAME = "All for YU로 보내기";
+const LX_SC_URL = "https://www.icloud.com/shortcuts/3761c52f25af403d8f1556e8cd9c7144";   // «All for YU로 보내기» 단축어 iCloud 공유 링크 (공유 시트용, 개인정보 없음)
+const SC_KEY = "yu-lx-sc", FEED_AT = "yu-lx-feed-at";
+const errBox = msg => { $("#feed-err").hidden = !msg; $("#feed-err").textContent = msg || ""; };
+function stamp(){
+  const at = store.get(FEED_AT, 0); if(!at) return "";
   const k = new Date(at + 9 * 3600000), two = n => String(n).padStart(2, "0");
-  const t = at ? `${k.getUTCMonth() + 1}.${k.getUTCDate()} ${two(k.getUTCHours())}:${two(k.getUTCMinutes())}` : "";
-  $("#feed-status").innerHTML = `<span>${esc(msg || ("러닝엑스 연결됨" + (t ? " · " + t + " 갱신" : "")))}</span> <button class="linkish" type="button" id="feed-refresh">새로고침</button> · <button class="linkish" type="button" id="feed-off">연결 해제</button>`;
+  return `${k.getUTCMonth() + 1}.${k.getUTCDate()} ${two(k.getUTCHours())}:${two(k.getUTCMinutes())}`;
 }
-let feedBusy = false;
-async function refreshFeed(manual){
-  const url = store.get(FEED_KEY, ""); if(!url || feedBusy) return;
-  feedBusy = true; if(manual) feedStatus("새 일정 확인 중…");
-  try { applyEvents(await fetchFeed(url)); store.set(FEED_AT, Date.now()); feedStatus(); }
-  catch(e){ feedStatus(manual ? feedErrCopy(e) : "새 일정을 못 가져왔어요 · 저장된 일정을 보여주는 중"); }
-  finally { feedBusy = false; }
+function feedStatus(msg){
+  const on = !!store.get(SC_KEY, false);
+  $("#feed-status").hidden = !on && !msg;
+  const t = stamp();
+  $("#feed-status").innerHTML = `<span>${esc(msg || ("러닝엑스 일정" + (t ? " · " + t + " 갱신" : "")))}</span>` + (on ? ` <button class="linkish" type="button" id="feed-help">보내는 방법</button>` : "");
+}
+async function pasteICS(){
+  let text = "";
+  try { text = await navigator.clipboard.readText(); }
+  catch(e){ errBox("붙여넣기가 허용되지 않았어요. 다시 «붙여넣기»를 누르고 뜨는 «붙여넣기»를 골라 주세요."); $("#lx-connect").hidden = false; return; }
+  if(!/BEGIN:VCALENDAR/i.test(text)){
+    errBox(/^\s*(webcal|https?):/i.test(text) ? "복사된 건 주소예요. 그 주소를 Safari에서 열고 공유 → «All for YU로 보내기»를 눌러 주세요." : "복사된 일정이 없어요. 러닝엑스 캘린더 피드에서 공유 → «All for YU로 보내기»를 먼저 해 주세요.");
+    $("#lx-connect").hidden = false; return;
+  }
+  const evs = parseICS(text);
+  if(!evs.length){ errBox("일정을 읽지 못했어요. «캘린더 피드»에서 공유했는지 확인해 주세요."); $("#lx-connect").hidden = false; return; }
+  applyEvents(evs); store.set(SC_KEY, true); store.set(FEED_AT, Date.now());
+  errBox(""); $("#lx-connect").hidden = true; $("#paste-bar").hidden = true; setBtn(); feedStatus();
+}
+let ranAt = 0;
+function setBtn(){
+  const on = !!store.get(SC_KEY, false);
+  if(on){ $("#lx-pick").textContent = "붙여넣기"; $("#lx-pick").setAttribute("data-run", ""); }
+  else { $("#lx-pick").textContent = "연결하기"; $("#lx-pick").removeAttribute("data-run"); }
 }
 if(IN_CLAUDE){
   $("#lx-pick").addEventListener("click", () => $("#lx-file").click());
 } else {
   $("#lx-how").hidden = true;
-  const setBtn = () => { $("#lx-pick").textContent = store.get(FEED_KEY, "") ? "주소 바꾸기" : "연결하기"; $("#lx-pick").hidden = !!store.get(FEED_KEY, ""); };
-  setBtn();
-  $("#lx-pick").addEventListener("click", () => { $("#lx-connect").hidden = !$("#lx-connect").hidden; $("#feed-err").hidden = true; });
-  $("#feed-paste").addEventListener("click", async () => {
-    try { const t = await navigator.clipboard.readText(); const u = normFeed(t); $("#feed-input").value = u || t; }
-    catch(e){ $("#feed-input").focus(); $("#feed-err").hidden = false; $("#feed-err").textContent = "칸을 길게 눌러 «붙여넣기»를 골라 주세요."; }
+  if(LX_SC_URL) $("#lx-sc-link").href = LX_SC_URL;
+  else { $("#lx-sc-link").removeAttribute("href"); $("#lx-sc-link").textContent = "단축어 링크 준비 중"; }
+  setBtn(); feedStatus();
+  const runSC = () => { ranAt = Date.now(); location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent(LX_SC_NAME); };
+  $("#lx-pick").addEventListener("click", () => {
+    if($("#lx-pick").hasAttribute("data-run")) pasteICS();
+    else { $("#lx-connect").hidden = !$("#lx-connect").hidden; errBox(""); }
   });
-  $("#feed-save").addEventListener("click", async () => {
-    const url = normFeed($("#feed-input").value);
-    $("#feed-err").hidden = true;
-    if(!url){ $("#feed-err").hidden = false; $("#feed-err").textContent = "주소 형식이 아니에요. https:// 또는 webcal:// 로 시작하는 주소를 붙여넣어 주세요."; return; }
-    $("#feed-save").disabled = true; $("#feed-save").textContent = "일정 가져오는 중…";
-    try {
-      const evs = await fetchFeed(url);
-      store.set(FEED_KEY, url); store.set(FEED_AT, Date.now());
-      applyEvents(evs); $("#feed-input").value = ""; $("#lx-connect").hidden = true; setBtn(); feedStatus();
-    } catch(e){ $("#feed-err").hidden = false; $("#feed-err").textContent = feedErrCopy(e); }
-    finally { $("#feed-save").disabled = false; $("#feed-save").textContent = "연결"; }
-  });
-  $("#feed-status").addEventListener("click", e => {
-    if(e.target.id === "feed-refresh") refreshFeed(true);
-    if(e.target.id === "feed-off"){ store.del(FEED_KEY); store.del(FEED_AT); setBtn(); feedStatus(); }
-  });
-  feedStatus();
-  refreshFeed(false);
+  $("#lx-paste").addEventListener("click", pasteICS);
+  $("#lx-paste3").addEventListener("click", pasteICS);
+  $("#feed-status").addEventListener("click", e => { if(e.target.id === "feed-paste2") pasteICS(); if(e.target.id === "feed-help"){ $("#lx-connect").hidden = !$("#lx-connect").hidden; errBox(""); } });
+  // 단축어 갔다가 돌아오면 «붙여넣기» 띄우기
   document.addEventListener("visibilitychange", () => {
-    if(!document.hidden && Date.now() - store.get(FEED_AT, 0) > 10 * 60000) refreshFeed(false);
+    if(!document.hidden && ranAt && Date.now() - ranAt < 5 * 60000) $("#paste-bar").hidden = false;
   });
 }
-$("#lx-clear").addEventListener("click", () => { lxEvents = []; store.del("yu-lx-events"); store.del(FEED_KEY); store.del(FEED_AT); renderLX(); if(!IN_CLAUDE){ $("#lx-pick").hidden = false; $("#lx-pick").textContent = "연결하기"; feedStatus(); } });
+$("#lx-clear").addEventListener("click", () => { lxEvents = []; store.del("yu-lx-events"); store.del(SC_KEY); store.del(FEED_AT); renderLX(); if(!IN_CLAUDE){ setBtn(); feedStatus(); $("#paste-bar").hidden = true; } });
 
 /* 내 일정 자동 업데이트: GitHub이 암호화해 둔 schedule.enc.json을 이 기기의 비밀번호로 풀어요 */
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -904,7 +898,7 @@ if(IN_CLAUDE){ $("#auto-box").hidden = true; }
 else {
   const saved = store.get("yu-sched-pass", "");
   schedUI(false);
-  if(saved && !store.get(FEED_KEY, "")) syncSchedule(saved, false).then(ok => { if(!ok) schedUI(false); });
+  if(saved && !store.get(SC_KEY, false)) syncSchedule(saved, false).then(ok => { if(!ok) schedUI(false); });
   $("#sched-save").addEventListener("click", async () => {
     const p = $("#sched-pass").value; if(!p) return;
     $("#sched-save").disabled = true; $("#sched-save").textContent = "확인 중…";
