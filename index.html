@@ -821,8 +821,20 @@ async function pasteICS(){
   let text = "";
   try { text = await navigator.clipboard.readText(); }
   catch(e){ errBox("붙여넣기가 허용되지 않았어요. 다시 «붙여넣기»를 누르고 뜨는 «붙여넣기»를 골라 주세요."); $("#lx-connect").hidden = false; return; }
+  // 단축어가 «Base64 인코딩»으로 보낸 경우 풀어서 읽기
   if(!/BEGIN:VCALENDAR/i.test(text)){
-    errBox(/^\s*(webcal|https?):/i.test(text) ? "복사된 건 주소예요. 그 주소를 Safari에서 열고 공유 → «All for YU로 보내기»를 눌러 주세요." : "복사된 일정이 없어요. 러닝엑스 캘린더 피드에서 공유 → «All for YU로 보내기»를 먼저 해 주세요.");
+    const b64 = text.replace(/\s+/g, "");
+    if(/^[A-Za-z0-9+/=_-]{40,}$/.test(b64)){
+      try {
+        const bin = atob(b64.replace(/-/g, "+").replace(/_/g, "/"));
+        const dec = new TextDecoder("utf-8").decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+        if(/BEGIN:VCALENDAR/i.test(dec)) text = dec;
+      } catch(e){}
+    }
+  }
+  if(!/BEGIN:VCALENDAR/i.test(text)){
+    const peek = text.trim().slice(0, 40).replace(/user_[A-Za-z0-9]+/g, "user_…");
+    errBox(/^\s*(webcal|https?):/i.test(text) ? "복사된 건 주소예요. 그 주소를 Safari에서 열고 공유 → «All for YU로 보내기»를 눌러 주세요." : (text.trim() ? `복사된 내용이 일정 형식이 아니에요(앞부분: «${peek}»). 단축어의 «텍스트» 동작을 «Base64 인코딩»으로 바꿔 주세요.` : "복사된 일정이 없어요. 러닝엑스 캘린더 피드에서 공유 → «All for YU로 보내기»를 먼저 해 주세요."));
     $("#lx-connect").hidden = false; return;
   }
   const evs = parseICS(text);
