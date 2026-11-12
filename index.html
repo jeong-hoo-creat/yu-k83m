@@ -721,7 +721,15 @@ document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () =>
 }));
 
 /* 홈: 내 일정 (러닝엑스 .ics) */
-let lxEvents = store.get("yu-lx-events", []);
+// 러닝엑스 피드는 «밤 11:59 마감» 과제를 날짜만(그날 00:00)으로 보내요 → 그날 23:59 마감으로 바로잡기
+const DAY = 86400000, KST9 = 9 * 3600000;
+function fixDue(e){
+  if(e && !e.allDay && (e.t + KST9) % DAY === 0) return {...e, t: e.t + DAY - 60000, allDay:true};
+  if(e && e.allDay && (e.t + KST9) % DAY === 0) return {...e, t: e.t + DAY - 60000};
+  return e;
+}
+const fixAll = evs => (Array.isArray(evs) ? evs : []).map(fixDue);
+let lxEvents = fixAll(store.get("yu-lx-events", []));
 let lxAll = false;
 const fmtKST = new Intl.DateTimeFormat("ko-KR", {timeZone:"Asia/Seoul", month:"numeric", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit", hour12:false});
 const fmtKSTDay = new Intl.DateTimeFormat("ko-KR", {timeZone:"Asia/Seoul", month:"numeric", day:"numeric", weekday:"short"});
@@ -750,12 +758,11 @@ function parseICS(text){
   return out.filter(e => e.when).map(e => ({title:e.title, t:e.when.t, allDay:e.when.allDay, url:e.url || ""}));
 }
 const upcoming = limit => lxEvents.filter(e => e.t >= Date.now() - 3600000).sort((a,b) => a.t - b.t).slice(0, limit);
-const whenLabel = e => e.allDay ? fmtKSTDay.format(e.t) + " (하루 종일)" : fmtKST.format(e.t);
+const whenLabel = e => fmtKST.format(e.t);
 function dday(e){
   const day = ms => Math.floor((ms + 9*3600000) / 86400000);
   const n = day(e.t) - day(Date.now());
   if(n <= 0){
-    if(e.allDay) return {cls:"soon", label:"오늘"};
     const left = e.t - Date.now();
     if(left <= 0) return {cls:"closed", label:"마감됨"};
     const h = Math.floor(left / 3600000), m = Math.floor((left % 3600000) / 60000);
@@ -774,7 +781,7 @@ function renderLX(){
     const inner = `${t}<span class="pill ${d.cls}">${d.label}</span><small>${esc(whenLabel(e))}</small>`;
     return e.url ? `<a class="row" href="${esc(e.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="row">${inner}</div>`; }).join("");
 }
-function applyEvents(evs){ lxEvents = evs; store.set("yu-lx-events", lxEvents); lxAll = false; renderLX(); detectCourses(); renderMyCourses(); }
+function applyEvents(evs){ lxEvents = fixAll(evs); store.set("yu-lx-events", lxEvents); lxAll = false; renderLX(); detectCourses(); renderMyCourses(); }
 $("#lx-file").addEventListener("change", async e => {
   const f = e.target.files && e.target.files[0]; if(!f) return;
   const evs = parseICS(await f.text()); e.target.value = "";
@@ -886,7 +893,7 @@ function schedUI(on, updated){
 async function syncSchedule(pass, showErr){
   try {
     const r = await decryptSchedule(pass);
-    lxEvents = r.events; store.set("yu-lx-events", lxEvents); renderLX(); detectCourses(); renderMyCourses();
+    lxEvents = fixAll(r.events); store.set("yu-lx-events", lxEvents); renderLX(); detectCourses(); renderMyCourses();
     schedUI(true, r.updated); $("#sched-err").hidden = true; return true;
   } catch(e){
     if(showErr){ $("#sched-err").hidden = false; $("#sched-err").textContent = e.code === "wrong" ? "비밀번호가 GitHub의 SCHEDULE_PASS와 달라요." : e.code === "missing" ? "아직 암호화된 일정 파일이 없어요. GitHub에서 Run workflow를 한 번 실행해 주세요." : "불러오지 못했어요. 인터넷 연결을 확인해 주세요."; }
