@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-16T07:10+09:00",
+ "updated": "2026-11-16T19:55+09:00",
  "notices": [
   {
    "id": 132,
@@ -34,6 +34,63 @@
    "body": "어울림에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
    "url": "https://join.yu.ac.kr/front_new/?g_page=program&m_page=program01&act=view.new&P_IDX=2656",
    "source": "어울림",
+   "auto": true,
+   "from": "2026-11-19"
+  },
+  {
+   "id": 138,
+   "cat": "경영학과",
+   "title": "2026학년도 2학기 강의평가 실시 안내",
+   "posted": "2026-11-16",
+   "deadline": "",
+   "body": "경영학과 공지에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://www.yu.ac.kr/biz/board/notice.do?mode=view&articleNo=232543462",
+   "source": "경영학과 공지",
+   "auto": true
+  },
+  {
+   "id": 139,
+   "cat": "학사",
+   "title": "17 2026학년도 2학기 강의평가 실시 안내",
+   "posted": "2026-11-16",
+   "deadline": "2026-11-16",
+   "body": "학사안내에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://www.yu.ac.kr/main/bachelor/bachelor-guide.do?mode=view&articleNo=232543470",
+   "source": "학사안내",
+   "auto": true
+  },
+  {
+   "id": 140,
+   "cat": "생활",
+   "title": "학생 식당 메뉴 안내(11/16 ~ 11/20)",
+   "posted": "2026-11-16",
+   "deadline": "",
+   "body": "편의시설에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://www.yu.ac.kr/yucf/notice/diet.do?mode=view&articleNo=232543399",
+   "source": "편의시설",
+   "auto": true
+  },
+  {
+   "id": 141,
+   "cat": "비교과",
+   "title": "생명응용과학대학",
+   "posted": "2026-11-16",
+   "deadline": "2026-11-23",
+   "body": "유토피아에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://yutopia.yu.ac.kr/ko/program/all/view/21155",
+   "source": "유토피아",
+   "auto": true,
+   "from": "2026-11-23"
+  },
+  {
+   "id": 142,
+   "cat": "비교과",
+   "title": "천마학부대학",
+   "posted": "2026-11-16",
+   "deadline": "2026-11-19",
+   "body": "유토피아에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
+   "url": "https://yutopia.yu.ac.kr/ko/program/all/view/21083",
+   "source": "유토피아",
    "auto": true,
    "from": "2026-11-19"
   },
@@ -157,7 +214,7 @@
   {
    "id": 105,
    "cat": "비교과",
-   "title": "358 HITS",
+   "title": "398 HITS",
    "posted": "2026-11-13",
    "deadline": "2026-11-25",
    "body": "유토피아에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
@@ -427,7 +484,7 @@
   {
    "id": 83,
    "cat": "비교과",
-   "title": "158 HITS",
+   "title": "181 HITS",
    "posted": "2026-11-12",
    "deadline": "2026-11-16",
    "body": "유토피아에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
