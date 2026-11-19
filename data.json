@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-19T19:31+09:00",
+ "updated": "2026-11-20T07:22+09:00",
  "notices": [
   {
    "id": 161,
@@ -475,30 +475,6 @@
    "source": "학사안내",
    "auto": true,
    "from": "2026-11-09"
-  },
-  {
-   "id": 71,
-   "cat": "학사",
-   "title": "9 [경북대학교] 2026학년도 겨울 계절학기 학점교류 안내(2026.11.04.(수) 17:00)",
-   "posted": "2026-11-12",
-   "deadline": "2026-10-29",
-   "body": "학사안내에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
-   "url": "https://www.yu.ac.kr/main/bachelor/bachelor-guide.do?mode=view&articleNo=232289183",
-   "source": "학사안내",
-   "auto": true,
-   "from": "2026-11-04"
-  },
-  {
-   "id": 72,
-   "cat": "학사",
-   "title": "8 [제주대학교] 2026학년도 겨울 계절학기 학점교류 안내(2026.11.05.(목) 17:00)",
-   "posted": "2026-11-12",
-   "deadline": "2026-10-29",
-   "body": "학사안내에 새로 올라온 글이에요. 자세한 내용은 원문을 확인하세요.",
-   "url": "https://www.yu.ac.kr/main/bachelor/bachelor-guide.do?mode=view&articleNo=232289223",
-   "source": "학사안내",
-   "auto": true,
-   "from": "2026-11-05"
   },
   {
    "id": 74,
